@@ -31,6 +31,7 @@ pub struct CpuState {
     pub im: Cell<IntMode>,
     pub int: Cell<bool>,
     pub nmi: Cell<bool>,
+    pub halt: Cell<bool>,
 }
 
 /// Z80 CPU
@@ -64,7 +65,6 @@ impl Device for Cpu {
 
             self.bus.m1.drive(self, false);
             self.bus.busak.drive(self, false);
-            self.bus.halt.drive(self, false);
 
             let mut pc = self.rp(RegPair::PC).get();
 
@@ -73,7 +73,14 @@ impl Device for Cpu {
 
                 self.rp(RegPair::PC).set(pc);
 
+                yield_break_if!(self.breakpoint_manager.hits_cpu_state_match(&self.state));
                 yield_break_if!(self.breakpoint_manager.hits_before_opcode_read(pc));
+
+                // Reset HALT state if NMI or INT triggered
+                if self.nmi.get() || (self.int.get() && self.iff1.get()) {
+                    self.halt.set(false);
+                }
+                self.bus.halt.drive(self, self.halt.get());
 
                 let mut decoder = instruction_decoder();
                 let mut upnext = TokenType::Opcode;
@@ -84,10 +91,7 @@ impl Device for Cpu {
                     // Read the next byte using appropriate M-cycle
                     let byte: u8 = match upnext {
                         TokenType::Opcode => {
-                            // Process possible interrupts
-                            if self.nmi.get() || self.int.get() {
-                                self.bus.halt.drive(self, false);
-                            }
+                            // Process possible interrupts (NMI or INT)
                             if self.nmi.get() {
                                 // Handle non maskable interrupt: push PC, jump to 0x0066
                                 self.nmi.set(false);
@@ -419,7 +423,7 @@ impl Device for Cpu {
                     },
                     Token::NOP => {},
                     Token::HALT => {
-                        self.bus.halt.drive(self, true);
+                        self.halt.set(true);
                         pc = pc.wrapping_sub(1); // rewind PC 1 byte back
                     },
                     Token::DI => {
