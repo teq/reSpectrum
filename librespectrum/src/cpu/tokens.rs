@@ -94,6 +94,12 @@ pub enum MCycle {
     IOP,
     /// Opcode Fetch (aka M1)
     OCF,
+    /// Operand Data Read
+    OD,
+    /// Operand Data Read of High Byte
+    ODH,
+    /// Operand Data Read of Low Byte
+    ODL,
     /// Memory Read
     MR,
     /// Memory Read of High Byte
