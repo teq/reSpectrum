@@ -52,7 +52,7 @@ impl<'a> Scheduler<'a> {
         Self { clock: Rc::clone(clock), tasks, queue }
     }
 
-    /// Run the scheduler for given htcycles or until break condition in any task
+    /// Run the scheduler for given htcycles or until break condition.
     /// Returns None if the scheduler ran until the target htcycles,
     /// or breakpoint ID if a task triggered a break condition
     pub fn run(&mut self, htcycles: u64) -> Option<Identifier> {
@@ -111,7 +111,7 @@ mod tests {
         fn run<'a>(&'a self) -> Box<dyn NoReturnTask + 'a> {
             Box::new(#[coroutine] move || {
                 loop {
-                    yield_wait!(self.state.clock.rising(3)); // skip to 3rd raising edge
+                    yield_wait!(self.state.clock.to_rising(3)); // skip to 3rd raising edge
                     self.state.seq.borrow_mut().push((self.state.clock.get(), true));
                 }
             })
@@ -123,7 +123,7 @@ mod tests {
         fn run<'a>(&'a self) -> Box<dyn NoReturnTask + 'a> {
             Box::new(#[coroutine] move || {
                 loop {
-                    yield_wait!(self.state.clock.falling(1)); // skip to 1st falling edge
+                    yield_wait!(self.state.clock.to_falling(1)); // skip to 1st falling edge
                     self.state.seq.borrow_mut().push((self.state.clock.get(), false));
                 }
             })

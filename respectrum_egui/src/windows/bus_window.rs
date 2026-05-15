@@ -73,7 +73,7 @@ impl SubWindow for BusWindow {
                 .body(|mut body| {
                     for reading in self.logger.readings.borrow().iter_to_tail().take(32) {
                         body.row(text_height, |mut row| {
-                            row.col(|ui| { ui.label(format!("{}", reading.htcyc)); });
+                            row.col(|ui| { ui.label(format!("{}", reading.htcycles)); });
                             row.col(|ui| { self.hex_cell(ui, reading.addr, "----"); });
                             row.col(|ui| { self.hex_cell(ui, reading.data, "--"); });
                             row.col(|ui| { self.ctrl_cell(ui, reading.ctrl, Ctrl::RD); });

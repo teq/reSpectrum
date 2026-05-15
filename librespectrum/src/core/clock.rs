@@ -22,12 +22,12 @@ impl Clock {
     }
 
     /// Get offset in half t-cycles to the next Nth t-cycle rising edge
-    pub fn rising(&self, n: usize) -> usize {
+    pub fn to_rising(&self, n: usize) -> usize {
         (n << 1) - (self.get() & 1) as usize
     }
 
     /// Get offset in half t-cycles to the next Nth t-cycle falling edge
-    pub fn falling(&self, n: usize) -> usize {
+    pub fn to_falling(&self, n: usize) -> usize {
         (n << 1) - (!self.get() & 1) as usize
     }
 

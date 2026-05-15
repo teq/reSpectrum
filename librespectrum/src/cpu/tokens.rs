@@ -89,13 +89,14 @@ pub enum Token {
 }
 
 /// CPU M-cycle type
+#[derive(Default, Debug, Clone, Copy)]
 pub enum MCycle {
     /// Internal CPU Operation
     IOP,
     /// Interrupt Response
     IR,
     /// Opcode Fetch (aka M1)
-    OCF,
+    #[default] OCF,
     /// Operand Data Read
     OD,
     /// Operand Data Read of High Byte

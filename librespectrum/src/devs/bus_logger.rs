@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Default, Clone, Copy)]
 pub struct BusState {
-    pub htcyc: u64,
+    pub htcycles: u64,
     pub addr: Option<(Identifier, u16)>,
     pub data: Option<(Identifier, u8)>,
     pub ctrl: Option<(Identifier, Ctrl)>,
@@ -53,7 +53,7 @@ impl Device for BusLogger {
             loop {
 
                 let state = BusState {
-                    htcyc: self.clock.get(),
+                    htcycles: self.clock.get(),
                     addr: self.bus.addr.state(),
                     data: self.bus.data.state(),
                     ctrl: self.bus.ctrl.state(),

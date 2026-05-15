@@ -68,8 +68,8 @@ fn main() {
     let bus: Rc<CpuBus> = Default::default();
     let clock: Rc<Clock> = Default::default();
 
-    let breakpoint_manager = Rc::new(BreakpointManager::default());
-    let device_manager = Rc::new(DeviceManager::new(&bus, &clock, &breakpoint_manager));
+    let breakpoints = Rc::new(BreakpointManager::default());
+    let device_manager = Rc::new(DeviceManager::new(&bus, &clock, &breakpoints));
     let cpu = device_manager.create_cpu();
     let mem: Rc<dyn Memory> = {
         let mem = device_manager.create_48k_memory();
@@ -87,7 +87,7 @@ fn main() {
     let app = Box::new(EmulApp {
         windows: vec![
             (true, Box::new(CpuWindow::new(&cpu))),
-            (true, Box::new(DisassmWindow::new(&scheduler, &cpu, &mem, &breakpoint_manager))),
+            (true, Box::new(DisassmWindow::new(&scheduler, &cpu, &mem, &breakpoints))),
             (true, Box::new(MemoryWindow::new(&mem))),
             (false, Box::new(BusWindow::new(&logger, &device_manager))),
             (false, Box::new(DisplayWindow::new(&mem))),

@@ -59,20 +59,20 @@ impl BreakpointManager {
         })
     }
 
-    pub fn hits_cpu_state_match(&self, state: &CpuState) -> Option<Identifier> {
+    pub fn cpu_state_match(&self, state: &CpuState) -> Option<Identifier> {
         self.match_and_maybe_remove(|entry| {
             matches!(&entry.condition, BreakCondition::CpuStateMatch(condition) if condition(state))
         })
     }
 
-    pub fn hits_before_opcode_read(&self, address: u16) -> Option<Identifier> {
+    pub fn before_opcode_read(&self, address: u16) -> Option<Identifier> {
         self.match_and_maybe_remove(|entry| {
             matches!(&entry.condition, BreakCondition::BeforeOpcodeRead(None))
             || matches!(&entry.condition, BreakCondition::BeforeOpcodeRead(Some(opcode_address)) if *opcode_address == address)
         })
     }
 
-    pub fn hits_after_memory_read(&self, address: u16) -> Option<Identifier> {
+    pub fn after_memory_read(&self, address: u16) -> Option<Identifier> {
         self.match_and_maybe_remove(|entry| {
             matches!(&entry.condition, BreakCondition::AfterMemoryAccess(access_address) if *access_address == address)
             || matches!(&entry.condition, BreakCondition::AfterMemoryAccessRange(start, end) if *start <= address && address <= *end)
@@ -80,7 +80,7 @@ impl BreakpointManager {
         })
     }
 
-    pub fn hits_after_memory_write(&self, address: u16) -> Option<Identifier> {
+    pub fn after_memory_write(&self, address: u16) -> Option<Identifier> {
         self.match_and_maybe_remove(|entry| {
             matches!(&entry.condition, BreakCondition::AfterMemoryAccess(access_address) if *access_address == address)
             || matches!(&entry.condition, BreakCondition::AfterMemoryAccessRange(start, end) if *start <= address && address <= *end)

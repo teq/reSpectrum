@@ -13,7 +13,7 @@ pub trait Device: Identifiable {
 pub struct DeviceManager {
     bus: Rc<CpuBus>,
     clock: Rc<Clock>,
-    breakpoint_manager: Rc<BreakpointManager>,
+    breakpoints: Rc<BreakpointManager>,
     next_id: Cell<Identifier>,
     device_names: RefCell<HashMap<Identifier, &'static str>>,
 }
@@ -21,11 +21,11 @@ pub struct DeviceManager {
 impl DeviceManager {
 
     /// Create a new device manager with the given bus and clock
-    pub fn new(bus: &Rc<CpuBus>, clock: &Rc<Clock>, breakpoint_manager: &Rc<BreakpointManager>) -> Self {
+    pub fn new(bus: &Rc<CpuBus>, clock: &Rc<Clock>, breakpoints: &Rc<BreakpointManager>) -> Self {
         Self {
             bus: Rc::clone(bus),
             clock: Rc::clone(clock),
-            breakpoint_manager: Rc::clone(breakpoint_manager),
+            breakpoints: Rc::clone(breakpoints),
             next_id: Cell::new(0),
             device_names: RefCell::new(HashMap::new()),
         }
@@ -49,14 +49,14 @@ impl DeviceManager {
 
     /// Create a new CPU instance
     pub fn create_cpu(&self) -> Rc<Cpu> {
-        let cpu = Rc::new(Cpu::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoint_manager));
+        let cpu = Rc::new(Cpu::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoints));
         self.register_name(cpu.id(), "Z80 CPU");
         cpu
     }
 
     /// Create a new 48k memory instance
     pub fn create_48k_memory(&self) -> Rc<Static48k> {
-        let memory = Rc::new(Static48k::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoint_manager));
+        let memory = Rc::new(Static48k::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoints));
         self.register_name(memory.id(), "Static 48K Memory");
         memory
     }

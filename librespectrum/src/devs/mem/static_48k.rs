@@ -15,19 +15,19 @@ pub struct Static48k {
     bus: Rc<CpuBus>,
     clock: Rc<Clock>,
     memory: Vec<Cell<u8>>,
-    breakpoint_manager: Rc<BreakpointManager>,
+    breakpoints: Rc<BreakpointManager>,
 }
 
 impl Static48k {
 
     /// Create new memory instance
-    pub fn new(id: Identifier, bus: &Rc<CpuBus>, clock: &Rc<Clock>, breakpoint_manager: &Rc<BreakpointManager>) -> Self {
+    pub fn new(id: Identifier, bus: &Rc<CpuBus>, clock: &Rc<Clock>, breakpoints: &Rc<BreakpointManager>) -> Self {
         Self {
             id,
             bus: Rc::clone(bus),
             clock: Rc::clone(clock),
             memory: vec![Default::default(); usize::pow(2, 16)],
-            breakpoint_manager: Rc::clone(breakpoint_manager),
+            breakpoints: Rc::clone(breakpoints),
         }
     }
 
@@ -80,7 +80,7 @@ impl Device for Static48k {
                     let addr = self.bus.addr.expect();
                     let val = self.read(addr);
                     self.bus.data.drive(self, val);
-                    yield_break_if!(self.breakpoint_manager.hits_after_memory_read(addr));
+                    yield_break_if!(self.breakpoints.after_memory_read(addr));
                 }
 
                 // Memory write: drive the bus while MREQ+WR are asserted.
@@ -89,7 +89,7 @@ impl Device for Static48k {
                     let addr = self.bus.addr.expect();
                     let val = self.bus.data.expect();
                     self.write(addr, val);
-                    yield_break_if!(self.breakpoint_manager.hits_after_memory_write(addr));
+                    yield_break_if!(self.breakpoints.after_memory_write(addr));
                 }
 
                 // Any non-memory cycle or ambiguous control state.
@@ -97,7 +97,7 @@ impl Device for Static48k {
                     self.bus.data.release(self);
                 }
 
-                yield_wait!(self.clock.rising(1));
+                yield_wait!(self.clock.to_rising(1));
 
             }
 

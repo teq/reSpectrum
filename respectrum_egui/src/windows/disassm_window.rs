@@ -17,7 +17,7 @@ pub struct DisassmWindow<'a> {
     scheduler: Rc<RefCell<Scheduler<'a>>>,
     cpu: Rc<Cpu>,
     memory: Rc<dyn Memory>,
-    breakpoint_manager: Rc<BreakpointManager>,
+    breakpoints: Rc<BreakpointManager>,
     addr: u16,
     rows: usize,
     cursor: usize,
@@ -25,12 +25,12 @@ pub struct DisassmWindow<'a> {
 
 impl<'a> DisassmWindow<'a> {
 
-    pub fn new(scheduler: &Rc<RefCell<Scheduler<'a>>>, cpu: &Rc<Cpu>, memory: &Rc<dyn Memory>, breakpoint_manager: &Rc<BreakpointManager>) -> Self {
+    pub fn new(scheduler: &Rc<RefCell<Scheduler<'a>>>, cpu: &Rc<Cpu>, memory: &Rc<dyn Memory>, breakpoints: &Rc<BreakpointManager>) -> Self {
         Self {
             scheduler: Rc::clone(scheduler),
             cpu: Rc::clone(cpu),
             memory: Rc::clone(memory),
-            breakpoint_manager: Rc::clone(breakpoint_manager),
+            breakpoints: Rc::clone(breakpoints),
             addr: 0,
             rows: 24,
             cursor: 0
@@ -103,13 +103,13 @@ impl<'a> DisassmWindow<'a> {
 
         if input.key_pressed(Key::Enter) {
             // Advance to instruction at cursor
-            let id = self.breakpoint_manager.add(BreakCondition::BeforeOpcodeRead(Some(self.cursor_addr())), true);
+            let id = self.breakpoints.add(BreakCondition::BeforeOpcodeRead(Some(self.cursor_addr())), true);
             while self.scheduler.borrow_mut().run(100) != Some(id) {}
         }
 
         if input.key_pressed(Key::Space) {
             // Advance to next instruction
-            let id = self.breakpoint_manager.add(BreakCondition::BeforeOpcodeRead(None), true);
+            let id = self.breakpoints.add(BreakCondition::BeforeOpcodeRead(None), true);
             while self.scheduler.borrow_mut().run(100) != Some(id) {}
             self.follow_pc();
         }
