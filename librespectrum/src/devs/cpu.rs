@@ -97,6 +97,8 @@ impl Device for Cpu {
                                 // Handle non maskable interrupt: push PC, jump to 0x0066
                                 self.nmi.set(false);
                                 self.iff1.set(false);
+                                yield_from!(self.opcode_read(pc)); // CPU reads the opcode, but ignores it
+                                yield_wait!(self.clock.rising(1)); // Complement M1 to 5 t-cycles
                                 yield_from!(self.stack_push(pc));
                                 pc = 0x0066;
                                 continue 'fetch;
@@ -112,12 +114,14 @@ impl Device for Cpu {
                                     IntMode::IM0 | IntMode::IM01 => vec_byte,
                                     IntMode::IM1 => {
                                         // Push PC and jump to fixed address 0x0038
+                                        yield_wait!(self.clock.rising(1)); // Complement IR to 7 t-cycles
                                         yield_from!(self.stack_push(pc));
                                         pc = 0x0038;
                                         continue 'fetch;
                                     },
                                     IntMode::IM2 => {
                                         // Push PC, read 16-bit vector from table at (I:vec_byte)
+                                        yield_wait!(self.clock.rising(1)); // Complement IR to 7 t-cycles
                                         yield_from!(self.stack_push(pc));
                                         let vec_addr = mkword!(self.rg(Reg::I).get(), vec_byte);
                                         let lo = yield_from!(self.memory_read(vec_addr));

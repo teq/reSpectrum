@@ -92,6 +92,8 @@ pub enum Token {
 pub enum MCycle {
     /// Internal CPU Operation
     IOP,
+    /// Interrupt Response
+    IR,
     /// Opcode Fetch (aka M1)
     OCF,
     /// Operand Data Read
