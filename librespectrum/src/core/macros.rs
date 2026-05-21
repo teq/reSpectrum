@@ -19,15 +19,20 @@ macro_rules! spword {
 /// Yield a wait for a specified number of htcycles
 #[macro_export]
 macro_rules! yield_wait {
-    ($offset:expr) => {
-        yield $crate::core::TaskYield::Wait($offset as u64)
+    ($input: expr) => {
+        {
+            let offset = $input as u64;
+            if offset > 0 {
+                yield $crate::core::TaskYield::Wait(offset)
+            }
+        }
     };
 }
 
 /// Yield a task break
 #[macro_export]
 macro_rules! yield_break_if {
-    ($option:expr) => {
+    ($option: expr) => {
         if let Some(id) = $option {
             yield $crate::core::TaskYield::Break(id)
         }

@@ -35,10 +35,10 @@ pub struct CpuState {
     pub halt: Cell<bool>,
     /// Current M-cycle type being executed by the CPU
     pub mcycle: Cell<MCycle>,
-    /// M-cycle count within the current instruction (starting from 1)
-    pub mcycles: Cell<usize>,
-    /// T-cycle count within the current M-cycle (starting from 1)
-    pub tcycles: Cell<usize>,
+    /// M-cycle within the current instruction
+    pub mcycle_no: Cell<u64>,
+    /// Half T-cycle within the current M-cycle
+    pub htcycle_no: Cell<u64>,
 }
 
 /// Z80 CPU
@@ -80,8 +80,11 @@ impl Device for Cpu {
 
                 self.rp(RegPair::PC).set(pc);
 
-                yield_break_if!(self.breakpoints.cpu_state_match(&self.state));
+                self.mcycle_no.set(0);
+                self.htcycle_no.set(0);
+
                 yield_break_if!(self.breakpoints.before_opcode_read(pc));
+                yield_break_if!(self.breakpoints.cpu_state_match(&self.state));
 
                 // Reset HALT state if NMI or INT triggered
                 if self.nmi.get() || (self.int.get() && self.iff1.get()) {
@@ -951,7 +954,7 @@ impl Cpu {
     }
 
     /// Instruction opcode fetch m-cycle
-    /// (usually referred to as M1). Takes 4 t-cycles.
+    /// (usually referred to as M1 or OCF). Takes 4 t-cycles.
     fn opcode_read<'a>(&'a self, addr: u16) -> impl Task<u8> + 'a {
         #[coroutine] move || {
             yield_wait!(self.clock.to_rising(1)); // T1 rising

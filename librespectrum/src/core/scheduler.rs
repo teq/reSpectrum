@@ -148,14 +148,14 @@ mod tests {
         scheduler.run(10);
         assert_eq!(
             *state.seq.borrow(),
-            vec![(1, false), (3, false), (5, false), (6, true), (7, false), (9, false)]
+            vec![(2, false), (4, false), (5, true), (6, false), (8, false)]
         );
 
         state.seq.borrow_mut().clear();
         scheduler.run(10);
         assert_eq!(
             *state.seq.borrow(),
-            vec![(11, false), (12, true), (13, false), (15, false), (17, false), (18, true), (19, false)]
+            vec![(10, false), (11, true), (12, false), (14, false), (16, false), (17, true), (18, false)]
         );
 
     }
