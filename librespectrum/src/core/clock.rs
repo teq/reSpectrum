@@ -31,4 +31,14 @@ impl Clock {
         (n << 1) - (self.get() & 1)
     }
 
+    /// Check if the clock is currently on a rising edge
+    pub fn is_rising(&self) -> bool {
+        self.get() & 1 == 1
+    }
+
+    /// Check if the clock is currently on a falling edge
+    pub fn is_falling(&self) -> bool {
+        self.get() & 1 == 0
+    }
+
 }

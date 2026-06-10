@@ -38,6 +38,12 @@ pub struct CpuBus {
     pub busrq: BusLine<bool>,
 }
 
+impl CpuBus {
+    pub fn log(&self, _message: String) {
+        // Logging is currently disabled
+    }
+}
+
 impl Default for CpuBus {
     fn default() -> Self {
         Self {
