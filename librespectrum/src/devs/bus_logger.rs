@@ -26,7 +26,7 @@ pub struct BusLogger {
     id: Identifier,
     bus: Rc<CpuBus>,
     clock: Rc<Clock>,
-    pub readings: RefCell<RingBuff<BusState, 64>>,
+    pub readings: RefCell<RingBuff<BusState, 128>>,
 }
 
 impl BusLogger {

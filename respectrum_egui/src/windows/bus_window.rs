@@ -4,6 +4,12 @@ use std::rc::Rc;
 
 use super::{SubWindow, draw_window};
 
+const LABEL_W: f32 = 68.0;
+const LANE_H: f32 = 24.0;
+const LANE_GAP: f32 = 4.0;
+const BACKGROUND_COLOR: Color32 = Color32::from_rgb(17, 20, 24);
+const NO_SIGNAL_COLOR: Color32 = Color32::DARK_GRAY;
+
 fn draw_digital_lane(
     painter: &Painter,
     wave_rect: Rect,
@@ -16,7 +22,7 @@ fn draw_digital_lane(
     }
 
     let signal_stroke = Stroke::new(1.6, color);
-    let no_signal_stroke = Stroke::new(1.0, Color32::DARK_GRAY);
+    let no_signal_stroke = Stroke::new(1.0, NO_SIGNAL_COLOR);
 
     let y_high = lane_top + 4.0;
     let y_low = lane_top + LANE_H - 4.0;
@@ -93,7 +99,7 @@ fn draw_bus_lane<T>(
     let y_mid = lane_top + LANE_H * 0.5;
     painter.line_segment(
         [pos2(wave_rect.left(), y_mid), pos2(wave_rect.right(), y_mid)],
-        Stroke::new(1.0, Color32::from_gray(70)),
+        Stroke::new(1.0, NO_SIGNAL_COLOR),
     );
 
     let step_x = if values.len() > 1 {
@@ -146,11 +152,6 @@ const LANES: [(&str, egui::Color32); 13] = [
     ("RESET", Color32::from_rgb(255, 150, 180)),
 ];
 
-const LABEL_W: f32 = 68.0;
-const LANE_H: f32 = 24.0;
-const LANE_GAP: f32 = 4.0;
-const BACKGROUND_COLOR: Color32 = Color32::from_rgb(17, 20, 24);
-
 pub struct BusWindow {
     logger: Rc<BusLogger>,
 }
@@ -172,11 +173,11 @@ impl SubWindow for BusWindow {
 
         draw_window(self.name(), focused, ctx, |ui| {
 
-            let readings: Vec<_> = self.logger.readings.borrow().iter_to_tail().take(96).collect();
+            let readings: Vec<_> = self.logger.readings.borrow().iter_to_head().collect();
 
             let (rect, _) = {
                 let total_h = (LANES.len() + 2) as f32 * (LANE_H + LANE_GAP) + 28.0;
-                ui.allocate_exact_size(vec2(800.0, total_h), Sense::hover())
+                ui.allocate_exact_size(vec2(1600.0, total_h), Sense::hover())
             };
 
             let wave_rect = Rect::from_min_max(
