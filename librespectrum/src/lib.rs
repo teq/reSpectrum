@@ -1,5 +1,4 @@
 #![feature(coroutines, coroutine_trait)]
-#![feature(never_type)]
 #![feature(trait_alias)]
 
 #[macro_use]

@@ -4,9 +4,10 @@ use std::rc::Rc;
 
 use super::{SubWindow, draw_window};
 
-const LABEL_W: f32 = 68.0;
+const LANE_LABEL_W: f32 = 68.0;
 const LANE_H: f32 = 24.0;
-const LANE_GAP: f32 = 4.0;
+const LANE_MARGIN: f32 = 4.0;
+const LANE_PADDING: f32 = 4.0;
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(17, 20, 24);
 const NO_SIGNAL_COLOR: Color32 = Color32::DARK_GRAY;
 
@@ -17,66 +18,47 @@ fn draw_digital_lane(
     values: &[Option<bool>],
     color: Color32,
 ) {
-    if values.is_empty() {
+    if values.len() < 2 {
         return;
     }
 
-    let signal_stroke = Stroke::new(1.6, color);
-    let no_signal_stroke = Stroke::new(1.0, NO_SIGNAL_COLOR);
+    let signal_stroke = Stroke::new(1.6_f32, color);
+    let no_signal_stroke = Stroke::new(1.0_f32, NO_SIGNAL_COLOR);
 
-    let y_high = lane_top + 4.0;
-    let y_low = lane_top + LANE_H - 4.0;
-    let y_unknown = lane_top + LANE_H * 0.5;
-    let step_x = if values.len() > 1 {
-        wave_rect.width() / (values.len() - 1) as f32
-    } else {
-        0.0
-    };
+    let y_high = lane_top + LANE_PADDING;
+    let y_low = lane_top + LANE_H - LANE_PADDING;
+    let y_mid = lane_top + LANE_H * 0.5;
 
-    let mut prev = values[0];
-    for (idx, curr) in values.iter().copied().enumerate().skip(1) {
-        let x_prev = wave_rect.left() + (idx - 1) as f32 * step_x;
-        let x_curr = wave_rect.left() + idx as f32 * step_x;
+    let step_x = wave_rect.width() / (values.len() - 1) as f32;
+
+    for (idx, pair) in values.windows(2).enumerate() {
+        let (prev, curr) = (pair[0], pair[1]);
+        let x_prev = wave_rect.left() + idx as f32 * step_x;
+        let x_curr = wave_rect.left() + (idx + 1) as f32 * step_x;
 
         match (prev, curr) {
-            (Some(p), Some(c)) => {
+            (Some(p), Some(c)) => { // Known state (0 or 1) or transition between them
                 let y_prev = if p { y_high } else { y_low };
                 let y_curr = if c { y_high } else { y_low };
-                painter.line_segment(
-                    [pos2(x_prev, y_prev), pos2(x_curr, y_prev)], signal_stroke
-                );
+                painter.hline(x_prev..=x_curr, y_prev, signal_stroke);
                 if p != c {
-                    painter.line_segment(
-                        [pos2(x_curr, y_prev), pos2(x_curr, y_curr)], signal_stroke
-                    );
+                    painter.vline(x_curr, y_prev..=y_curr, signal_stroke);
                 }
             }
-            (Some(p), None) => {
+            (Some(p), None) => { // Transition from known state (0 or 1) to unknown (high impedance state)
                 let y_prev = if p { y_high } else { y_low };
-                painter.line_segment(
-                    [pos2(x_prev, y_prev), pos2(x_curr, y_prev)], signal_stroke
-                );
-                painter.line_segment(
-                    [pos2(x_curr, y_prev), pos2(x_curr, y_unknown)], no_signal_stroke
-                );
+                painter.hline(x_prev..=x_curr, y_prev, signal_stroke);
+                painter.vline(x_curr, y_prev..=y_mid, signal_stroke);
             }
-            (None, Some(c)) => {
+            (None, Some(c)) => { // Transition from unknown (high impedance state) to known state (0 or 1)
                 let y_curr = if c { y_high } else { y_low };
-                painter.line_segment(
-                    [pos2(x_prev, y_unknown), pos2(x_curr, y_unknown)], no_signal_stroke
-                );
-                painter.line_segment(
-                    [pos2(x_curr, y_unknown), pos2(x_curr, y_curr)], no_signal_stroke
-                );
+                painter.hline(x_prev..=x_curr, y_mid, no_signal_stroke);
+                painter.vline(x_curr, y_mid..=y_curr, signal_stroke);
             }
-            (None, None) => {
-                painter.line_segment(
-                    [pos2(x_prev, y_unknown), pos2(x_curr, y_unknown)], no_signal_stroke
-                );
+            (None, None) => { // No transition, we're in the unknown (high impedance) state
+                painter.hline(x_prev..=x_curr, y_mid, no_signal_stroke);
             }
         }
-
-        prev = curr;
     }
 }
 
@@ -89,43 +71,56 @@ fn draw_bus_lane<T>(
 ) where
     T: Copy + PartialEq + std::fmt::UpperHex,
 {
-    if values.is_empty() {
+    if values.len() < 2 {
         return;
     }
 
     let hex_digits = std::mem::size_of::<T>() * 2;
-    let label_width = 22.0 + hex_digits as f32 * 2.0;
 
+    let signal_stroke = Stroke::new(1.6_f32, color);
+    let no_signal_stroke = Stroke::new(1.0_f32, NO_SIGNAL_COLOR);
+
+    let y_high = lane_top + LANE_PADDING;
+    let y_low = lane_top + LANE_H - LANE_PADDING;
     let y_mid = lane_top + LANE_H * 0.5;
-    painter.line_segment(
-        [pos2(wave_rect.left(), y_mid), pos2(wave_rect.right(), y_mid)],
-        Stroke::new(1.0, NO_SIGNAL_COLOR),
-    );
 
-    let step_x = if values.len() > 1 {
-        wave_rect.width() / (values.len() - 1) as f32
-    } else {
-        0.0
-    };
+    let step_x = wave_rect.width() / (values.len() - 1) as f32;
 
-    let mut last_labeled: Option<T> = None;
-    for (idx, value) in values.iter().copied().enumerate() {
-        let x = wave_rect.left() + idx as f32 * step_x;
-        if let Some(v) = value {
-            if last_labeled != Some(v) {
-                painter.line_segment(
-                    [pos2(x, lane_top + 3.0), pos2(x, lane_top + LANE_H - 3.0)],
-                    Stroke::new(1.0, color),
-                );
+    for (idx, pair) in values.windows(2).enumerate() {
+        let (prev, curr) = (pair[0], pair[1]);
+        let x_prev = wave_rect.left() + idx as f32 * step_x;
+        let x_curr = wave_rect.left() + (idx + 1) as f32 * step_x;
+
+        match (prev, curr) {
+            (prev, Some(c)) if prev != Some(c) => { // Transition from unknown to known or to a different known state
+                if prev.is_some() {
+                    painter.hline(x_prev..=x_curr, y_high, signal_stroke);
+                    painter.hline(x_prev..=x_curr, y_low, signal_stroke);
+                } else {
+                    painter.hline(x_prev..=x_curr, y_mid, no_signal_stroke);
+                }
+                painter.vline(x_curr, y_high..=y_low, signal_stroke);
                 painter.text(
-                    pos2((x + 2.0).min(wave_rect.right() - label_width), lane_top + 3.0),
-                    Align2::LEFT_TOP,
-                    format!("{:0width$X}", v, width = hex_digits),
+                    pos2(x_curr + 2.0, y_mid),
+                    Align2::LEFT_CENTER,
+                    format!("{:0width$X}", c, width = hex_digits),
                     FontId::monospace(10.0),
                     color,
                 );
-                last_labeled = Some(v);
-            }
+            },
+            (Some(p), Some(c)) if p == c => { // No transition, same known state
+                painter.hline(x_prev..=x_curr, y_high, signal_stroke);
+                painter.hline(x_prev..=x_curr, y_low, signal_stroke);
+            },
+            (Some(_), None) => { // Transition from known to unknown state
+                painter.hline(x_prev..=x_curr, y_high, signal_stroke);
+                painter.vline(x_curr, y_low..=y_high, signal_stroke);
+                painter.hline(x_prev..=x_curr, y_low, signal_stroke);
+            },
+            (None, None) => { // No transition, we're in the unknown (high impedance) state
+                painter.hline(x_prev..=x_curr, y_mid, no_signal_stroke);
+            },
+            _ => {}
         }
     }
 }
@@ -176,12 +171,12 @@ impl SubWindow for BusWindow {
             let readings: Vec<_> = self.logger.readings.borrow().iter_to_head().collect();
 
             let (rect, _) = {
-                let total_h = (LANES.len() + 2) as f32 * (LANE_H + LANE_GAP) + 28.0;
+                let total_h = (LANES.len() + 2) as f32 * (LANE_H + LANE_MARGIN) + 28.0;
                 ui.allocate_exact_size(vec2(1600.0, total_h), Sense::hover())
             };
 
             let wave_rect = Rect::from_min_max(
-                pos2(rect.left() + LABEL_W, rect.top() + 8.0),
+                pos2(rect.left() + LANE_LABEL_W, rect.top() + 8.0),
                 pos2(rect.right() - 8.0, rect.bottom() - 18.0),
             );
 
@@ -209,7 +204,7 @@ impl SubWindow for BusWindow {
                 &addr_values,
                 Color32::from_rgb(255, 220, 150),
             );
-            y += LANE_H + LANE_GAP;
+            y += LANE_H + LANE_MARGIN;
 
             painter.text(
                 pos2(rect.left() + 8.0, y + 2.0),
@@ -225,7 +220,7 @@ impl SubWindow for BusWindow {
                 &data_values,
                 Color32::from_rgb(180, 230, 255),
             );
-            y += LANE_H + LANE_GAP;
+            y += LANE_H + LANE_MARGIN;
 
             for (name, color) in LANES {
                 painter.text(
@@ -269,7 +264,7 @@ impl SubWindow for BusWindow {
                 };
 
                 draw_digital_lane(&painter, wave_rect, y, &values, color);
-                y += LANE_H + LANE_GAP;
+                y += LANE_H + LANE_MARGIN;
             }
 
             if let (Some(first), Some(last)) = (readings.first(), readings.last()) {
