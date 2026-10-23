@@ -30,16 +30,19 @@ pub fn draw_window(
     add_contents: impl FnOnce(&mut Ui) -> (),
 ) -> Response {
 
-    Area::new(&name).show(ctx, |ui| {
+    let name = name.into();
 
-        Frame::window(&ctx.style())
-            .inner_margin(style::Margin::same(0.0))
+    Area::new(Id::unique(&name)).show(ctx, |ui| {
+
+        Frame::window(ui.style())
+            .inner_margin(Margin::same(2))
             .fill(if focused {Color32::LIGHT_BLUE} else {Color32::LIGHT_GRAY})
             .show(ui, |ui|
         {
 
-            Frame::window(&ctx.style())
-                .stroke(Stroke::none())
+            Frame::window(ui.style())
+                .shadow(Shadow::NONE)
+                .stroke(Stroke::NONE)
                 .fill(Color32::TRANSPARENT)
                 .show(ui, |ui|
             {
@@ -48,14 +51,10 @@ pub fn draw_window(
                 )));
             });
 
-            ui.add_space(-3.0);
-
-            Frame::window(&ctx.style())
-                .rounding(Rounding {
-                    nw: 0.0, ne: 0.0,
-                    ..ctx.style().visuals.window_rounding
-                })
-                .stroke(Stroke::none())
+            Frame::window(ui.style())
+                .shadow(Shadow::NONE)
+                .corner_radius(CornerRadius::ZERO)
+                .stroke(Stroke::NONE)
                 .show(ui, |ui|
             {
                 add_contents(ui);

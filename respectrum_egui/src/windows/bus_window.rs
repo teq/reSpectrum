@@ -126,7 +126,7 @@ fn draw_bus_lane<T>(
 }
 
 fn shade(color: Color32, amount: f32) -> Color32 {
-    let mut hsva = color::HsvaGamma::from(color);
+    let mut hsva = ecolor::HsvaGamma::from(color);
     hsva.v = (hsva.v + amount).clamp(0.0, 1.0);
     Color32::from(hsva)
 }

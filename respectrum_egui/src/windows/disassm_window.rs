@@ -149,7 +149,7 @@ impl<'a> SubWindow for DisassmWindow<'a> {
         draw_window(self.name(), focused, ctx, |ui| {
 
             if focused {
-                self.handle_keyboard(&ui.input());
+                ui.input(|input| self.handle_keyboard(input));
             }
 
             Grid::new("memory").min_col_width(0.0).show(ui, |ui| {

@@ -12,7 +12,6 @@ use std::{
     vec::Vec,
     fs::File,
     io::Read,
-    ops::Deref,
     cell::RefCell,
 };
 
@@ -26,17 +25,15 @@ struct EmulApp<'a> {
 
 impl eframe::App for EmulApp<'_> {
 
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
 
-        let mut style = ctx.style().deref().clone();
-        style.override_text_style = Some(egui::TextStyle::Monospace);
-        ctx.set_style(style);
+        let ctx = ui.ctx().clone();
 
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+        egui::Panel::top("top_panel").show(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        frame.quit();
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 });
                 ui.menu_button("Window", |ui| {
@@ -44,7 +41,7 @@ impl eframe::App for EmulApp<'_> {
                         ui.checkbox(open, window.name());
                     }
                 });
-                ui.with_layout(egui::Layout::right_to_left(), |ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     egui::warn_if_debug_build(ui);
                 });
             });
@@ -52,7 +49,7 @@ impl eframe::App for EmulApp<'_> {
 
         for (idx, (open, window)) in self.windows.iter_mut().enumerate() {
             if *open {
-                let response = window.show(ctx, self.focus == idx);
+                let response = window.show(&ctx, self.focus == idx);
                 if response.clicked() || response.drag_started() {
                     self.focus = idx;
                 }
@@ -63,7 +60,7 @@ impl eframe::App for EmulApp<'_> {
 
 }
 
-fn main() {
+fn main() -> eframe::Result {
 
     let bus: Rc<CpuBus> = Default::default();
     let clock: Rc<Clock> = Default::default();
@@ -95,26 +92,27 @@ fn main() {
         focus: 0,
     });
 
-    run_native(app);
+    run_native(app)
 
 }
 
-#[allow(unsafe_code)]
-fn run_native<'a>(app: Box<dyn eframe::App + 'a>) -> ! {
+fn run_native<'a>(app: Box<dyn eframe::App + 'a>) -> eframe::Result {
 
     let native_options = eframe::NativeOptions {
-        maximized: true,
+        viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
-    };
-
-    let static_app = unsafe {
-        std::mem::transmute::<Box<dyn eframe::App + 'a>, Box<dyn eframe::App + 'static>>(app)
     };
 
     eframe::run_native(
         "reSpectrum - ZX Spectrum emulator",
         native_options,
-        Box::new(|_| static_app),
-    );
+        Box::new(|creation_context| {
+            creation_context.egui_ctx.all_styles_mut(|style| {
+                style.override_text_style = Some(egui::TextStyle::Monospace);
+                style.interaction.selectable_labels = false;
+            });
+            Ok(app)
+        }),
+    )
 
 }

@@ -94,19 +94,16 @@ impl SubWindow for DisplayWindow {
 
         self.render();
 
-        let image = ColorImage {
-            size: [SCREEN_W, SCREEN_H],
-            pixels: self.pixels.clone(),
-        };
+        let image = ColorImage::new([SCREEN_W, SCREEN_H], self.pixels.clone());
 
-        let texture = ctx.load_texture("zx_screen", image);
+        let texture = ctx.load_texture("zx_screen", image, TextureOptions::NEAREST);
 
         let response = draw_window(self.name(), focused, ctx, |ui| {
             let size = Vec2::new(
                 (SCREEN_W * self.scale) as f32,
                 (SCREEN_H * self.scale) as f32,
             );
-            ui.image(texture.id(), size);
+            ui.image((texture.id(), size));
         });
 
         self.texture = Some(texture);
