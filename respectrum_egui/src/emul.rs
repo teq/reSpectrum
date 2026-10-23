@@ -15,6 +15,7 @@ use std::{
     cell::RefCell,
 };
 
+mod theme;
 mod windows;
 use windows::{SubWindow, CpuWindow, DisassmWindow, MemoryWindow, BusWindow, DisplayWindow};
 
@@ -24,6 +25,10 @@ struct EmulApp<'a> {
 }
 
 impl eframe::App for EmulApp<'_> {
+
+    fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {
+        visuals.panel_fill.to_normalized_gamma_f32()
+    }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
 
@@ -107,10 +112,7 @@ fn run_native<'a>(app: Box<dyn eframe::App + 'a>) -> eframe::Result {
         "reSpectrum - ZX Spectrum emulator",
         native_options,
         Box::new(|creation_context| {
-            creation_context.egui_ctx.all_styles_mut(|style| {
-                style.override_text_style = Some(egui::TextStyle::Monospace);
-                style.interaction.selectable_labels = false;
-            });
+            theme::apply(&creation_context.egui_ctx);
             Ok(app)
         }),
     )

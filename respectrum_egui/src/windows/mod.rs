@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use eframe::egui::*;
+use crate::theme;
 
 mod bus_window;
 pub use bus_window::BusWindow;
@@ -36,18 +37,18 @@ pub fn draw_window(
 
         Frame::window(ui.style())
             .inner_margin(Margin::same(2))
-            .fill(if focused {Color32::LIGHT_BLUE} else {Color32::LIGHT_GRAY})
+            .fill(theme::window_header(focused))
             .show(ui, |ui|
         {
 
             Frame::window(ui.style())
                 .shadow(Shadow::NONE)
                 .stroke(Stroke::NONE)
-                .fill(Color32::TRANSPARENT)
+                .fill(theme::TRANSPARENT)
                 .show(ui, |ui|
             {
                 ui.add(Label::new(RichText::new(name).color(
-                    if focused {Color32::BLACK} else {Color32::GRAY}
+                    theme::window_title(focused)
                 )));
             });
 
@@ -64,8 +65,4 @@ pub fn draw_window(
 
     }).response
 
-}
-
-pub fn cursor_color(focused: bool) -> Color32 {
-    if focused {Color32::LIGHT_BLUE} else {Color32::LIGHT_GRAY}
 }

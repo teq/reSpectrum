@@ -2,14 +2,15 @@ use egui::*;
 use librespectrum::{devs::{BusLogger, DeviceManager}, core::Ctrl};
 use std::rc::Rc;
 
-use super::{SubWindow, draw_window};
+use crate::{
+    theme::{self, BUS_LANES as LANES},
+    windows::{SubWindow, draw_window}
+};
 
 const LANE_LABEL_W: f32 = 68.0;
 const LANE_H: f32 = 24.0;
 const LANE_MARGIN: f32 = 4.0;
 const LANE_PADDING: f32 = 4.0;
-const BACKGROUND_COLOR: Color32 = Color32::from_rgb(17, 20, 24);
-const NO_SIGNAL_COLOR: Color32 = Color32::DARK_GRAY;
 
 fn draw_digital_lane(
     painter: &Painter,
@@ -23,7 +24,7 @@ fn draw_digital_lane(
     }
 
     let signal_stroke = Stroke::new(1.6_f32, color);
-    let no_signal_stroke = Stroke::new(1.0_f32, NO_SIGNAL_COLOR);
+    let no_signal_stroke = Stroke::new(1.0_f32, theme::BUS_NO_SIGNAL);
 
     let y_high = lane_top + LANE_PADDING;
     let y_low = lane_top + LANE_H - LANE_PADDING;
@@ -78,7 +79,7 @@ fn draw_bus_lane<T>(
     let hex_digits = std::mem::size_of::<T>() * 2;
 
     let signal_stroke = Stroke::new(1.6_f32, color);
-    let no_signal_stroke = Stroke::new(1.0_f32, NO_SIGNAL_COLOR);
+    let no_signal_stroke = Stroke::new(1.0_f32, theme::BUS_NO_SIGNAL);
 
     let y_high = lane_top + LANE_PADDING;
     let y_low = lane_top + LANE_H - LANE_PADDING;
@@ -125,28 +126,6 @@ fn draw_bus_lane<T>(
     }
 }
 
-fn shade(color: Color32, amount: f32) -> Color32 {
-    let mut hsva = ecolor::HsvaGamma::from(color);
-    hsva.v = (hsva.v + amount).clamp(0.0, 1.0);
-    Color32::from(hsva)
-}
-
-const LANES: [(&str, egui::Color32); 13] = [
-    ("RD", Color32::LIGHT_GREEN),
-    ("WR", Color32::LIGHT_RED),
-    ("MREQ", Color32::from_rgb(255, 196, 128)),
-    ("IORQ", Color32::from_rgb(255, 226, 120)),
-    ("RFSH", Color32::from_rgb(140, 220, 255)),
-    ("M1", Color32::from_rgb(160, 255, 170)),
-    ("BUSRQ", Color32::from_rgb(255, 170, 120)),
-    ("BUSAK", Color32::from_rgb(255, 210, 120)),
-    ("WAIT", Color32::from_rgb(255, 140, 140)),
-    ("HALT", Color32::from_rgb(230, 170, 255)),
-    ("INT", Color32::from_rgb(130, 220, 255)),
-    ("NMI", Color32::from_rgb(130, 255, 220)),
-    ("RESET", Color32::from_rgb(255, 150, 180)),
-];
-
 pub struct BusWindow {
     logger: Rc<BusLogger>,
 }
@@ -185,8 +164,8 @@ impl SubWindow for BusWindow {
 
             let painter = ui.painter_at(rect);
 
-            painter.rect_filled(rect, 4.0, BACKGROUND_COLOR);
-            painter.rect_filled(wave_rect, 4.0, shade(BACKGROUND_COLOR, 0.1));
+            painter.rect_filled(rect, 4.0, theme::BUS_BACKGROUND);
+            painter.rect_filled(wave_rect, 4.0, theme::BUS_WAVE_BACKGROUND);
 
             let mut y = rect.top() + 8.0;
 
@@ -195,14 +174,14 @@ impl SubWindow for BusWindow {
                 Align2::LEFT_TOP,
                 "ADDR",
                 FontId::monospace(11.0),
-                Color32::LIGHT_GRAY,
+                theme::TEXT,
             );
             draw_bus_lane(
                 &painter,
                 wave_rect,
                 y,
                 &addr_values,
-                Color32::from_rgb(255, 220, 150),
+                theme::BUS_ADDRESS,
             );
             y += LANE_H + LANE_MARGIN;
 
@@ -211,14 +190,14 @@ impl SubWindow for BusWindow {
                 Align2::LEFT_TOP,
                 "DATA",
                 FontId::monospace(11.0),
-                Color32::LIGHT_GRAY,
+                theme::TEXT,
             );
             draw_bus_lane(
                 &painter,
                 wave_rect,
                 y,
                 &data_values,
-                Color32::from_rgb(180, 230, 255),
+                theme::BUS_DATA,
             );
             y += LANE_H + LANE_MARGIN;
 
@@ -228,7 +207,7 @@ impl SubWindow for BusWindow {
                     Align2::LEFT_TOP,
                     name,
                     FontId::monospace(11.0),
-                    Color32::LIGHT_GRAY,
+                    theme::TEXT,
                 );
 
                 let values: Vec<Option<bool>> = match name {
@@ -273,14 +252,14 @@ impl SubWindow for BusWindow {
                     Align2::LEFT_BOTTOM,
                     format!("T={} ", first.htcycles / 2),
                     FontId::monospace(10.0),
-                    Color32::GRAY,
+                    theme::MUTED_TEXT,
                 );
                 painter.text(
                     pos2(wave_rect.right(), rect.bottom() - 4.0),
                     Align2::RIGHT_BOTTOM,
                     format!("T={} ", last.htcycles / 2),
                     FontId::monospace(10.0),
-                    Color32::GRAY,
+                    theme::MUTED_TEXT,
                 );
             }
 

@@ -3,7 +3,10 @@ use egui::*;
 
 use librespectrum::devs::mem::Memory;
 
-use super::{SubWindow, draw_window, cursor_color};
+use crate::{
+    theme::{self, cursor_color},
+    windows::{SubWindow, draw_window}
+};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Cursor {
@@ -151,7 +154,7 @@ impl SubWindow for MemoryWindow {
                         RichText::new(
                             format!("{:04X}", row_addr)
                         ).background_color(
-                            if self.cursor == Cursor::Address(row) {cursor_color(focused)} else {Color32::default()}
+                            if self.cursor == Cursor::Address(row) {cursor_color(focused)} else {theme::TRANSPARENT}
                         )
                     ).sense(Sense::click());
 
@@ -169,9 +172,9 @@ impl SubWindow for MemoryWindow {
                             RichText::new(
                                 format!("{:02X}", self.memory.read(addr))
                             ).background_color(
-                                if self.cursor == Cursor::Memory(col, row) {cursor_color(focused)} else {Color32::default()}
+                                if self.cursor == Cursor::Memory(col, row) {cursor_color(focused)} else {theme::TRANSPARENT}
                             ).color(
-                                if self.memory.writable(addr) {Color32::BLACK} else {Color32::GRAY}
+                                if self.memory.writable(addr) {theme::TEXT} else {theme::MUTED_TEXT}
                             )
                         ).sense(Sense::click());
 
@@ -200,9 +203,9 @@ impl SubWindow for MemoryWindow {
                                 RichText::new(
                                     (if is_ascii {byte as char} else {'.'}).to_string()
                                 ).background_color(
-                                    if self.cursor == Cursor::Text(col, row) {cursor_color(focused)} else {Color32::default()}
+                                    if self.cursor == Cursor::Text(col, row) {cursor_color(focused)} else {theme::TRANSPARENT}
                                 ).color(
-                                    if is_ascii {Color32::DARK_GRAY} else {Color32::LIGHT_GRAY}
+                                    if is_ascii {theme::TEXT} else {theme::MUTED_TEXT}
                                 )
                             ).sense(Sense::click());
 

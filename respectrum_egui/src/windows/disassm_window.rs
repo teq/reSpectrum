@@ -8,7 +8,10 @@ use librespectrum::{
     core::Scheduler, cpu::decoder::disassembler, devs::{BreakCondition, BreakpointManager, Cpu, mem::Memory}
 };
 
-use super::{SubWindow, draw_window, cursor_color};
+use crate::{
+    theme::{self, cursor_color},
+    windows::{SubWindow, draw_window}
+};
 
 /// Maximum bytes to process for each disassembled line
 const LINE_BYTES: usize = 4;
@@ -170,16 +173,16 @@ impl<'a> SubWindow for DisassmWindow<'a> {
                     };
 
                     let line_color = if line.address <= pc && pc < line.address + line.bytes.len() as u16 {
-                        Color32::RED
+                        theme::CURRENT_INSTRUCTION
                     } else {
-                        Color32::BLACK
+                        theme::TEXT
                     };
 
                     // Print address
                     if ui.add(
                         Label::new(
                             RichText::new(format!("{:0>4X}", line.address))
-                                .background_color(if self.cursor == row {cursor_color(focused)} else {Color32::default()})
+                                .background_color(if self.cursor == row {cursor_color(focused)} else {theme::TRANSPARENT})
                                 .color(line_color)
                         ).sense(Sense::click())
                     ).clicked() {

@@ -3,7 +3,7 @@ use egui::*;
 
 use librespectrum::devs::mem::Memory;
 
-use super::{SubWindow, draw_window};
+use crate::windows::{SubWindow, draw_window};
 
 /// ZX Spectrum standard color palette (normal and bright variants)
 const PALETTE: [[u8; 3]; 16] = [

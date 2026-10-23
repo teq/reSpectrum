@@ -2,7 +2,7 @@ use egui::*;
 use librespectrum::{cpu::Flags, devs::Cpu};
 use std::rc::Rc;
 
-use super::{SubWindow, draw_window};
+use crate::{theme, windows::{SubWindow, draw_window}};
 
 pub struct CpuWindow {
     cpu: Rc<Cpu>
@@ -20,7 +20,7 @@ fn reg_label(ui: &mut Ui, label: &str, value: u16) {
 }
 
 fn flag_label(ui: &mut Ui, label: &str, is_set: bool) {
-    let color = if is_set { Color32::RED } else { Color32::GRAY };
+    let color = if is_set { theme::FLAG_SET } else { theme::FLAG_UNSET };
     ui.colored_label(color, label);
 }
 
