@@ -68,8 +68,10 @@ pub fn visuals() -> Visuals {
     visuals.panel_fill = BG_HARD;
     visuals.window_fill = BG;
     visuals.window_stroke = Stroke::new(1.0, BG3);
-    visuals.window_shadow.color = BG_HARD;
-    visuals.popup_shadow.color = BG_HARD;
+    visuals.window_shadow.color = BG_HARD.gamma_multiply(0.3);
+    visuals.popup_shadow.color = BG_HARD.gamma_multiply(0.3);
+    visuals.window_shadow.blur = 8;
+    visuals.window_shadow.spread = 0;
     visuals.faint_bg_color = BG1;
     visuals.extreme_bg_color = BG_HARD;
     visuals.text_edit_bg_color = Some(BG_HARD);

@@ -151,7 +151,7 @@ impl SubWindow for BusWindow {
 
             let (rect, _) = {
                 let total_h = (LANES.len() + 2) as f32 * (LANE_H + LANE_MARGIN) + 28.0;
-                ui.allocate_exact_size(vec2(1600.0, total_h), Sense::hover())
+                ui.allocate_exact_size(vec2(1200.0, total_h), Sense::hover())
             };
 
             let wave_rect = Rect::from_min_max(
