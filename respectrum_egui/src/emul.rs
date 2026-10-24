@@ -105,6 +105,7 @@ fn run_native<'a>(app: Box<dyn eframe::App + 'a>) -> eframe::Result {
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_maximized(true),
+        renderer: eframe::Renderer::Glow,
         ..Default::default()
     };
 
