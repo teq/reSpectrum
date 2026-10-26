@@ -90,15 +90,15 @@ impl SubWindow for DisplayWindow {
 
     fn name(&self) -> String { String::from("Display") }
 
-    fn show(&mut self, ctx: &Context, focused: bool) -> Response {
+    fn show(&mut self, ui: &mut Ui, open: &mut bool) -> Option<Response> {
 
         self.render();
 
         let image = ColorImage::new([SCREEN_W, SCREEN_H], self.pixels.clone());
 
-        let texture = ctx.load_texture("zx_screen", image, TextureOptions::NEAREST);
+        let texture = ui.ctx().load_texture("zx_screen", image, TextureOptions::NEAREST);
 
-        let response = draw_window(self.name(), focused, ctx, |ui| {
+        let response = draw_window(&self.name(), ui, open, |ui, _| {
             let size = Vec2::new(
                 (SCREEN_W * self.scale) as f32,
                 (SCREEN_H * self.scale) as f32,

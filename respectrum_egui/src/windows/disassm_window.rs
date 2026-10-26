@@ -147,9 +147,9 @@ impl<'a> SubWindow for DisassmWindow<'a> {
 
     fn name(&self) -> String { String::from("Disassembler") }
 
-    fn show(&mut self, ctx: &Context, focused: bool) -> Response {
+    fn show(&mut self, ui: &mut Ui, open: &mut bool) -> Option<Response> {
 
-        draw_window(self.name(), focused, ctx, |ui| {
+        draw_window(&self.name(), ui, open, |ui, focused| {
 
             if focused {
                 ui.input(|input| self.handle_keyboard(input));

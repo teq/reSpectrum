@@ -143,9 +143,9 @@ impl SubWindow for BusWindow {
 
     fn name(&self) -> String { String::from("Bus") }
 
-    fn show(&mut self, ctx: &Context, focused: bool) -> Response {
+    fn show(&mut self, ui: &mut Ui, open: &mut bool) -> Option<Response> {
 
-        draw_window(self.name(), focused, ctx, |ui| {
+        draw_window(&self.name(), ui, open, |ui, _| {
 
             let readings: Vec<_> = self.logger.readings.borrow().iter_to_head().collect();
 

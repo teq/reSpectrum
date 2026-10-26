@@ -20,8 +20,7 @@ mod windows;
 use windows::{SubWindow, CpuWindow, DisassmWindow, MemoryWindow, BusWindow, DisplayWindow};
 
 struct EmulApp<'a> {
-    windows: Vec<(bool, Box<dyn SubWindow + 'a>)>,
-    focus: usize,
+    windows: Vec<(bool, Box<dyn SubWindow + 'a>)>
 }
 
 impl eframe::App for EmulApp<'_> {
@@ -52,12 +51,9 @@ impl eframe::App for EmulApp<'_> {
             });
         });
 
-        for (idx, (open, window)) in self.windows.iter_mut().enumerate() {
+        for (open, window) in self.windows.iter_mut() {
             if *open {
-                let response = window.show(&ctx, self.focus == idx);
-                if response.clicked() || response.drag_started() {
-                    self.focus = idx;
-                }
+                window.show(ui, open);
             }
         }
 
@@ -91,10 +87,9 @@ fn main() -> eframe::Result {
             (true, Box::new(CpuWindow::new(&cpu))),
             (true, Box::new(DisassmWindow::new(&scheduler, &cpu, &mem, &breakpoints))),
             (true, Box::new(MemoryWindow::new(&mem))),
-            (false, Box::new(BusWindow::new(&logger, &device_manager))),
-            (false, Box::new(DisplayWindow::new(&mem))),
-        ],
-        focus: 0,
+            (true, Box::new(BusWindow::new(&logger, &device_manager))),
+            (true, Box::new(DisplayWindow::new(&mem))),
+        ]
     });
 
     run_native(app)

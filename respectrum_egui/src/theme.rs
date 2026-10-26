@@ -107,6 +107,7 @@ pub fn visuals() -> Visuals {
     visuals.widgets.active.bg_stroke.color = AQUA;
     visuals.widgets.active.fg_stroke.color = AQUA;
     visuals.widgets.open.bg_stroke.color = AQUA;
+    visuals.widgets.open.weak_bg_fill = window_header(true);
     visuals
 }
 

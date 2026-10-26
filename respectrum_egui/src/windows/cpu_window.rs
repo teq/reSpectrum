@@ -28,9 +28,9 @@ impl SubWindow for CpuWindow {
 
     fn name(&self) -> String { String::from("CPU") }
 
-    fn show(&mut self, ctx: &Context, focused: bool) -> Response {
+    fn show(&mut self, ui: &mut Ui, open: &mut bool) -> Option<Response> {
 
-        draw_window(self.name(), focused, ctx, |ui| {
+        draw_window(&self.name(), ui, open, |ui, _| {
 
             Grid::new("cpu_regs").min_col_width(20.0).show(ui, |ui| {
 
