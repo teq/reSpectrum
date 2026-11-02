@@ -2,22 +2,26 @@ use egui::{Color32, Context, Stroke, Theme, Visuals};
 
 mod palette {
     use egui::Color32;
-    pub const BG_HARD: Color32 = Color32::from_rgb(0x1d, 0x20, 0x21);
-    pub const BG: Color32 = Color32::from_rgb(0x28, 0x28, 0x28);
-    pub const BG1: Color32 = Color32::from_rgb(0x3c, 0x38, 0x36);
-    pub const BG2: Color32 = Color32::from_rgb(0x50, 0x49, 0x45);
-    pub const BG3: Color32 = Color32::from_rgb(0x66, 0x5c, 0x54);
-    pub const FG: Color32 = Color32::from_rgb(0xeb, 0xdb, 0xb2);
-    pub const FG2: Color32 = Color32::from_rgb(0xd5, 0xc4, 0xa1);
-    pub const FG3: Color32 = Color32::from_rgb(0xbd, 0xae, 0x93);
-    pub const GRAY: Color32 = Color32::from_rgb(0x92, 0x83, 0x74);
-    pub const RED: Color32 = Color32::from_rgb(0xfb, 0x49, 0x34);
-    pub const GREEN: Color32 = Color32::from_rgb(0xb8, 0xbb, 0x26);
-    pub const YELLOW: Color32 = Color32::from_rgb(0xfa, 0xbd, 0x2f);
-    pub const BLUE: Color32 = Color32::from_rgb(0x83, 0xa5, 0x98);
-    pub const PURPLE: Color32 = Color32::from_rgb(0xd3, 0x86, 0x9b);
-    pub const AQUA: Color32 = Color32::from_rgb(0x8e, 0xc0, 0x7c);
-    pub const ORANGE: Color32 = Color32::from_rgb(0xfe, 0x80, 0x19);
+
+    // Ayu Dark — all colors verbatim from the official theme (https://github.com/dempfi/ayu)
+    pub const BG_HARD: Color32 = Color32::from_rgb(0x0b, 0x0e, 0x14);
+    pub const BG: Color32 = Color32::from_rgb(0x10, 0x14, 0x1c);
+    pub const BG1: Color32 = Color32::from_rgb(0x14, 0x18, 0x21);
+    pub const BG2: Color32 = Color32::from_rgb(0x1e, 0x24, 0x2f);
+    pub const BG3: Color32 = Color32::from_rgb(0x1b, 0x1f, 0x29);
+    pub const FG: Color32 = Color32::from_rgb(0xbf, 0xbd, 0xb6);
+    pub const FG2: Color32 = Color32::from_rgb(0x69, 0x71, 0x84);
+    pub const FG3: Color32 = Color32::from_rgb(0x5a, 0x63, 0x78);
+    pub const GRAY: Color32 = Color32::from_rgb(0x5a, 0x66, 0x73);
+    pub const ACCENT: Color32 = Color32::from_rgb(0xe6, 0xb4, 0x50);
+    pub const RED: Color32 = Color32::from_rgb(0xf0, 0x71, 0x78);
+    pub const ORANGE: Color32 = Color32::from_rgb(0xff, 0x8f, 0x40);
+    pub const YELLOW: Color32 = Color32::from_rgb(0xff, 0xb4, 0x54);
+    pub const GREEN: Color32 = Color32::from_rgb(0xaa, 0xd9, 0x4c);
+    pub const CYAN: Color32 = Color32::from_rgb(0x95, 0xe6, 0xcb);
+    pub const BLUE: Color32 = Color32::from_rgb(0x59, 0xc2, 0xff);
+    pub const PURPLE: Color32 = Color32::from_rgb(0xd2, 0xa6, 0xff);
+    pub const ERROR: Color32 = Color32::from_rgb(0xd9, 0x57, 0x57);
 }
 
 use palette::*;
@@ -40,18 +44,18 @@ pub const BUS_LANES: [(&str, Color32); 13] = [
     ("MREQ", ORANGE),
     ("IORQ", YELLOW),
     ("RFSH", BLUE),
-    ("M1", AQUA),
+    ("M1", CYAN),
     ("BUSRQ", ORANGE),
     ("BUSAK", YELLOW),
     ("WAIT", RED),
     ("HALT", PURPLE),
     ("INT", BLUE),
-    ("NMI", AQUA),
+    ("NMI", CYAN),
     ("RESET", PURPLE),
 ];
 
 pub fn window_header(focused: bool) -> Color32 {
-    if focused { AQUA } else { BG1 }
+    if focused { ACCENT } else { BG1 }
 }
 
 pub fn window_title(focused: bool) -> Color32 {
@@ -77,12 +81,12 @@ pub fn visuals() -> Visuals {
     visuals.text_edit_bg_color = Some(BG_HARD);
     visuals.code_bg_color = BG1;
     visuals.hyperlink_color = BLUE;
-    visuals.warn_fg_color = YELLOW;
-    visuals.error_fg_color = RED;
+    visuals.warn_fg_color = ACCENT;
+    visuals.error_fg_color = ERROR;
     visuals.selection.bg_fill = BG2;
     visuals.selection.stroke = Stroke::new(1.0, FG);
-    visuals.text_cursor.stroke.color = AQUA;
-    visuals.ime_composition.active_underline_stroke.color = AQUA;
+    visuals.text_cursor.stroke.color = ACCENT;
+    visuals.ime_composition.active_underline_stroke.color = ACCENT;
     visuals.ime_composition.inactive_underline_stroke.color = GRAY;
 
     for widget in [
@@ -101,12 +105,12 @@ pub fn visuals() -> Visuals {
     visuals.widgets.noninteractive.weak_bg_fill = BG;
     visuals.widgets.hovered.bg_fill = BG2;
     visuals.widgets.hovered.weak_bg_fill = BG2;
-    visuals.widgets.hovered.bg_stroke.color = AQUA;
+    visuals.widgets.hovered.bg_stroke.color = ACCENT;
     visuals.widgets.active.bg_fill = BG2;
     visuals.widgets.active.weak_bg_fill = BG2;
-    visuals.widgets.active.bg_stroke.color = AQUA;
-    visuals.widgets.active.fg_stroke.color = AQUA;
-    visuals.widgets.open.bg_stroke.color = AQUA;
+    visuals.widgets.active.bg_stroke.color = ACCENT;
+    visuals.widgets.active.fg_stroke.color = ACCENT;
+    visuals.widgets.open.bg_stroke.color = ACCENT;
     visuals.widgets.open.weak_bg_fill = window_header(true);
     visuals
 }
