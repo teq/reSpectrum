@@ -11,8 +11,9 @@ pub struct Clock {
 
 impl Clock {
 
-    /// Set clock in half t-cycles
-    pub fn set(&self, val: u64) {
+    /// Set clock in half t-cycles.
+    /// Only visible within `core`, so only the scheduler can advance the clock.
+    pub(super) fn set(&self, val: u64) {
         self.htcycles.set(val);
     }
 
