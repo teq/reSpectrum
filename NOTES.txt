@@ -1,3 +1,8 @@
+20-10-2026
+
+Test against switch-level simulation: https://github.com/tinymachines/halfphi
+
+
 13-07-2020
 
 It's not clear how to emulate CPI/CPD. According to docs it has the same m-cycles as LDI/LDD,
