@@ -1,7 +1,7 @@
 use std::{cell::{Cell, RefCell}, collections::HashMap, rc::Rc};
 
 use crate::{
-    core::{Clock, CpuBus, Identifiable, Identifier, NoReturnTask},
+    core::{BusState, Identifiable, Identifier, NoReturnTask},
     devs::{BreakpointManager, BusLogger, Cpu, mem::Static48k},
 };
 
@@ -11,8 +11,7 @@ pub trait Device: Identifiable {
 
 /// Device manager for creating and managing devices in the system
 pub struct DeviceManager {
-    bus: Rc<CpuBus>,
-    clock: Rc<Clock>,
+    bus: Rc<BusState>,
     breakpoints: Rc<BreakpointManager>,
     next_id: Cell<Identifier>,
     device_names: RefCell<HashMap<Identifier, &'static str>>,
@@ -20,11 +19,10 @@ pub struct DeviceManager {
 
 impl DeviceManager {
 
-    /// Create a new device manager with the given bus and clock
-    pub fn new(bus: &Rc<CpuBus>, clock: &Rc<Clock>, breakpoints: &Rc<BreakpointManager>) -> Self {
+    /// Create a new device manager with the given bus state
+    pub fn new(bus: &Rc<BusState>, breakpoints: &Rc<BreakpointManager>) -> Self {
         Self {
             bus: Rc::clone(bus),
-            clock: Rc::clone(clock),
             breakpoints: Rc::clone(breakpoints),
             next_id: Cell::new(0),
             device_names: RefCell::new(HashMap::new()),
@@ -49,21 +47,21 @@ impl DeviceManager {
 
     /// Create a new CPU instance
     pub fn create_cpu(&self) -> Rc<Cpu> {
-        let cpu = Rc::new(Cpu::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoints));
+        let cpu = Rc::new(Cpu::new(self.generate_id(), &self.bus, &self.breakpoints));
         self.register_name(cpu.id(), "Z80 CPU");
         cpu
     }
 
     /// Create a new 48k memory instance
     pub fn create_48k_memory(&self) -> Rc<Static48k> {
-        let memory = Rc::new(Static48k::new(self.generate_id(), &self.bus, &self.clock, &self.breakpoints));
+        let memory = Rc::new(Static48k::new(self.generate_id(), &self.bus, &self.breakpoints));
         self.register_name(memory.id(), "Static 48K Memory");
         memory
     }
 
     /// Create a new bus logger instance
     pub fn create_bus_logger(&self) -> Rc<BusLogger> {
-        let logger = Rc::new(BusLogger::new(self.generate_id(), &self.bus, &self.clock));
+        let logger = Rc::new(BusLogger::new(self.generate_id(), &self.bus));
         self.register_name(logger.id(), "Bus Logger");
         logger
     }

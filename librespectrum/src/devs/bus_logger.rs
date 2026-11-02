@@ -1,12 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    core::{Clock, CpuBus, Ctrl, Identifiable, Identifier, NoReturnTask, RingBuff},
+    core::{BusState, Ctrl, Identifiable, Identifier, NoReturnTask, RingBuff},
     devs::Device, yield_wait,
 };
 
 #[derive(Default, Clone, Copy)]
-pub struct BusState {
+pub struct BusReading {
     pub htcycles: u64,
     pub addr: Option<(Identifier, u16)>,
     pub data: Option<(Identifier, u8)>,
@@ -24,17 +24,15 @@ pub struct BusState {
 /// CPU bus logger
 pub struct BusLogger {
     id: Identifier,
-    bus: Rc<CpuBus>,
-    clock: Rc<Clock>,
-    pub readings: RefCell<RingBuff<BusState, 96>>,
+    bus: Rc<BusState>,
+    pub readings: RefCell<RingBuff<BusReading, 96>>,
 }
 
 impl BusLogger {
-    pub fn new(id: Identifier, bus: &Rc<CpuBus>, clock: &Rc<Clock>) -> Self {
+    pub fn new(id: Identifier, bus: &Rc<BusState>) -> Self {
         Self {
             id,
             bus: Rc::clone(bus),
-            clock: Rc::clone(clock),
             readings: RefCell::new(RingBuff::new())
         }
     }
@@ -52,8 +50,8 @@ impl Device for BusLogger {
 
             loop {
 
-                let state = BusState {
-                    htcycles: self.clock.get(),
+                let reading = BusReading {
+                    htcycles: self.bus.clock.get(),
                     addr: self.bus.addr.state(),
                     data: self.bus.data.state(),
                     ctrl: self.bus.ctrl.state(),
@@ -67,7 +65,7 @@ impl Device for BusLogger {
                     busrq: self.bus.busrq.state(),
                 };
 
-                self.readings.borrow_mut().push(state);
+                self.readings.borrow_mut().push(reading);
 
                 yield_wait!(1); // Advance to the next T-cycle edge (rising or falling)
 

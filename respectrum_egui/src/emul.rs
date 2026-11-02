@@ -3,7 +3,7 @@
 extern crate librespectrum;
 
 use librespectrum::{
-    core::{Clock, CpuBus, Scheduler},
+    core::{BusState, Clock, CpuBus, Scheduler},
     devs::{BreakpointManager, Device, DeviceManager, mem::Memory}
 };
 
@@ -65,9 +65,10 @@ fn main() -> eframe::Result {
 
     let bus: Rc<CpuBus> = Default::default();
     let clock: Rc<Clock> = Default::default();
+    let bus_state: Rc<BusState> = Rc::new(BusState::new(&bus, &clock));
 
     let breakpoints = Rc::new(BreakpointManager::default());
-    let device_manager = Rc::new(DeviceManager::new(&bus, &clock, &breakpoints));
+    let device_manager = Rc::new(DeviceManager::new(&bus_state, &breakpoints));
     let cpu = device_manager.create_cpu();
     let mem: Rc<dyn Memory> = {
         let mem = device_manager.create_48k_memory();
