@@ -1,5 +1,18 @@
 use super::BusLine;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum BusSignal {
+    ADDR, DATA, MREQ, IORQ, RD, WR, RFSH,
+    M1, BUSAK, HALT, WAIT, INT, NMI, RESET, BUSRQ
+}
+
+impl std::fmt::Display for BusSignal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 /// Z80 CPU bus
 pub struct CpuBus {
     /// Address bus (tri-state outputs)
@@ -43,21 +56,21 @@ impl CpuBus {
 impl Default for CpuBus {
     fn default() -> Self {
         Self {
-            addr: BusLine::new("ADDR"),
-            data: BusLine::new("DATA"),
-            mreq: BusLine::new("MREQ"),
-            iorq: BusLine::new("IORQ"),
-            rd: BusLine::new("RD"),
-            wr: BusLine::new("WR"),
-            rfsh: BusLine::new("RFSH"),
-            m1: BusLine::new("M1"),
-            busak: BusLine::new("BUSAK"),
-            halt: BusLine::new("HALT"),
-            wait: BusLine::new("WAIT"),
-            int: BusLine::new("INT"),
-            nmi: BusLine::new("NMI"),
-            reset: BusLine::new("RESET"),
-            busrq: BusLine::new("BUSRQ"),
+            addr: BusLine::new(BusSignal::ADDR),
+            data: BusLine::new(BusSignal::DATA),
+            mreq: BusLine::new(BusSignal::MREQ),
+            iorq: BusLine::new(BusSignal::IORQ),
+            rd: BusLine::new(BusSignal::RD),
+            wr: BusLine::new(BusSignal::WR),
+            rfsh: BusLine::new(BusSignal::RFSH),
+            m1: BusLine::new(BusSignal::M1),
+            busak: BusLine::new(BusSignal::BUSAK),
+            halt: BusLine::new(BusSignal::HALT),
+            wait: BusLine::new(BusSignal::WAIT),
+            int: BusLine::new(BusSignal::INT),
+            nmi: BusLine::new(BusSignal::NMI),
+            reset: BusLine::new(BusSignal::RESET),
+            busrq: BusLine::new(BusSignal::BUSRQ),
         }
     }
 }

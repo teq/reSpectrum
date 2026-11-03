@@ -1,12 +1,12 @@
 use std::cell::Cell;
 
-use super::{Identifiable, Identifier};
+use super::{BusSignal, Identifiable, Identifier};
 
 /// Signal bus line
 pub struct BusLine<T> {
 
-    /// Line name
-    name: &'static str,
+    /// Line signal
+    signal: BusSignal,
 
     /// Line owner and state
     state: Cell<Option<(Identifier, T)>>,
@@ -16,13 +16,8 @@ pub struct BusLine<T> {
 impl<T: Copy> BusLine<T> {
 
     /// Create new bus line
-    pub fn new(name: &'static str) -> Self {
-        Self { name, state: Cell::new(None) }
-    }
-
-    /// Bus line name
-    pub fn name(&self) -> &str {
-        self.name
+    pub fn new(signal: BusSignal) -> Self {
+        Self { signal, state: Cell::new(None) }
     }
 
     /// Get line state (owner and value)
@@ -50,7 +45,7 @@ impl<T: Copy> BusLine<T> {
         match self.state.get() {
             None => self.state.set(Some((device.id(), value))),
             Some((owner, ..)) if owner == device.id() => self.state.set(Some((owner, value))),
-            Some((owner, ..)) => panic!("Device {} tries to drive the line {} owned by {}", device.id(), self.name, owner)
+            Some((owner, ..)) => panic!("Device {} tries to drive the line {} owned by {}", device.id(), self.signal, owner)
         }
     }
 
@@ -69,7 +64,7 @@ mod tests {
 
     use super::*;
 
-    fn mkline() -> BusLine::<bool> { BusLine::<bool>::new("Test line") }
+    fn mkline() -> BusLine::<bool> { BusLine::<bool>::new(BusSignal::DATA) }
 
     struct TestDevice {
         id: Identifier
