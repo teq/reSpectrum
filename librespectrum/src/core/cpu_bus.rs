@@ -1,4 +1,6 @@
-use super::BusLine;
+use std::rc::Rc;
+
+use super::{BusLine, BusSignalObserver};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
@@ -50,6 +52,25 @@ pub struct CpuBus {
 impl CpuBus {
     pub fn log(&self, _message: String) {
         // Logging is currently disabled
+    }
+
+    /// Subscribe an observer to every bus line
+    pub fn observe(&self, observer: Rc<dyn BusSignalObserver>) {
+        self.addr.observe(Rc::clone(&observer));
+        self.data.observe(Rc::clone(&observer));
+        self.mreq.observe(Rc::clone(&observer));
+        self.iorq.observe(Rc::clone(&observer));
+        self.rd.observe(Rc::clone(&observer));
+        self.wr.observe(Rc::clone(&observer));
+        self.rfsh.observe(Rc::clone(&observer));
+        self.m1.observe(Rc::clone(&observer));
+        self.busak.observe(Rc::clone(&observer));
+        self.halt.observe(Rc::clone(&observer));
+        self.wait.observe(Rc::clone(&observer));
+        self.int.observe(Rc::clone(&observer));
+        self.nmi.observe(Rc::clone(&observer));
+        self.reset.observe(Rc::clone(&observer));
+        self.busrq.observe(Rc::clone(&observer));
     }
 }
 

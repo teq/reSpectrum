@@ -1,6 +1,9 @@
 mod bus_line;
 pub use bus_line::*;
 
+mod bus_event;
+pub use bus_event::*;
+
 mod bus_state;
 pub use bus_state::*;
 
