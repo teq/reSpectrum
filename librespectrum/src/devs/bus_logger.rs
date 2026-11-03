@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    core::{BusState, Ctrl, Identifiable, Identifier, NoReturnTask, RingBuff},
+    core::{BusState, Identifiable, Identifier, NoReturnTask, RingBuff},
     devs::Device, yield_wait,
 };
 
@@ -10,7 +10,11 @@ pub struct BusReading {
     pub htcycles: u64,
     pub addr: Option<(Identifier, u16)>,
     pub data: Option<(Identifier, u8)>,
-    pub ctrl: Option<(Identifier, Ctrl)>,
+    pub mreq: Option<(Identifier, bool)>,
+    pub iorq: Option<(Identifier, bool)>,
+    pub rd: Option<(Identifier, bool)>,
+    pub wr: Option<(Identifier, bool)>,
+    pub rfsh: Option<(Identifier, bool)>,
     pub m1: Option<(Identifier, bool)>,
     pub busak: Option<(Identifier, bool)>,
     pub halt: Option<(Identifier, bool)>,
@@ -54,7 +58,11 @@ impl Device for BusLogger {
                     htcycles: self.bus.clock.get(),
                     addr: self.bus.addr.state(),
                     data: self.bus.data.state(),
-                    ctrl: self.bus.ctrl.state(),
+                    mreq: self.bus.mreq.state(),
+                    iorq: self.bus.iorq.state(),
+                    rd: self.bus.rd.state(),
+                    wr: self.bus.wr.state(),
+                    rfsh: self.bus.rfsh.state(),
                     m1: self.bus.m1.state(),
                     busak: self.bus.busak.state(),
                     halt: self.bus.halt.state(),

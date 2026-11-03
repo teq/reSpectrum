@@ -1,5 +1,5 @@
 use egui::*;
-use librespectrum::{devs::{BusLogger, DeviceManager}, core::Ctrl};
+use librespectrum::{devs::{BusLogger, DeviceManager}};
 use std::rc::Rc;
 
 use crate::{
@@ -211,26 +211,11 @@ impl SubWindow for BusWindow {
                 );
 
                 let values: Vec<Option<bool>> = match name {
-                    "RD" => readings
-                        .iter()
-                        .map(|r| r.ctrl.map(|(_, c)| c.contains(Ctrl::RD)))
-                        .collect(),
-                    "WR" => readings
-                        .iter()
-                        .map(|r| r.ctrl.map(|(_, c)| c.contains(Ctrl::WR)))
-                        .collect(),
-                    "MREQ" => readings
-                        .iter()
-                        .map(|r| r.ctrl.map(|(_, c)| c.contains(Ctrl::MREQ)))
-                        .collect(),
-                    "IORQ" => readings
-                        .iter()
-                        .map(|r| r.ctrl.map(|(_, c)| c.contains(Ctrl::IORQ)))
-                        .collect(),
-                    "RFSH" => readings
-                        .iter()
-                        .map(|r| r.ctrl.map(|(_, c)| c.contains(Ctrl::RFSH)))
-                        .collect(),
+                    "RD" => readings.iter().map(|r| r.rd.map(|(_, v)| v)).collect(),
+                    "WR" => readings.iter().map(|r| r.wr.map(|(_, v)| v)).collect(),
+                    "MREQ" => readings.iter().map(|r| r.mreq.map(|(_, v)| v)).collect(),
+                    "IORQ" => readings.iter().map(|r| r.iorq.map(|(_, v)| v)).collect(),
+                    "RFSH" => readings.iter().map(|r| r.rfsh.map(|(_, v)| v)).collect(),
                     "M1" => readings.iter().map(|r| r.m1.map(|(_, v)| v)).collect(),
                     "BUSRQ" => readings.iter().map(|r| r.busrq.map(|(_, v)| v)).collect(),
                     "BUSAK" => readings.iter().map(|r| r.busak.map(|(_, v)| v)).collect(),

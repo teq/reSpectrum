@@ -3,7 +3,7 @@ use std::{
 };
 
 use crate::{
-    core::{BusState, Ctrl, Identifiable, Identifier, NoReturnTask, Task, U16Cell}, cpu::{
+    core::{BusState, Identifiable, Identifier, NoReturnTask, Task, U16Cell}, cpu::{
         Flags, decoder::instruction_decoder, tokens::{AluOp, BlockOp, Condition, IntMode, MCycle, Reg, RegPair, ShiftOp, Token, TokenType}
     }, devs::BreakpointManager, mkword, spword, yield_break_if, yield_from, yield_wait
 };
@@ -924,6 +924,15 @@ impl Cpu {
         }
     }
 
+    /// Drive control lines low
+    fn deassert_control_lines(&self) {
+        self.bus.mreq.drive(self, false);
+        self.bus.iorq.drive(self, false);
+        self.bus.rd.drive(self, false);
+        self.bus.wr.drive(self, false);
+        self.bus.rfsh.drive(self, false);
+    }
+
     /// Probe WAIT signal and wait while it's set
     fn process_wait<'a>(&'a self) -> impl Task<()> + 'a {
         #[coroutine] move || {
@@ -938,10 +947,15 @@ impl Cpu {
     fn process_busrq<'a>(&'a self) -> impl Task<()> + 'a {
         #[coroutine] move || {
             yield_wait!(self.bus.clock.to_rising(1));
+            self.bus.busak.drive(self, true);
+            self.bus.rfsh.drive(self, false); // RFSH is deasserted during BUSAK
+            // Set address, data and control lines to high impedance state (floating)
             self.bus.data.release(self);
             self.bus.addr.release(self);
-            self.bus.ctrl.release(self);
-            self.bus.busak.drive(self, true);
+            self.bus.mreq.release(self);
+            self.bus.iorq.release(self);
+            self.bus.rd.release(self);
+            self.bus.wr.release(self);
             while self.bus.busrq.probe().unwrap_or(false) {
                 yield_wait!(self.bus.clock.to_rising(1)); // wait 1 t-cycle
             }
@@ -958,10 +972,10 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::IR));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             self.bus.m1.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(3)); // TW1 falling
-            self.bus.ctrl.drive(self, Ctrl::IORQ);
+            self.bus.iorq.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // TW2 falling
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
@@ -970,15 +984,16 @@ impl Cpu {
             let r = self.rg(Reg::R).get();
             self.rg(Reg::R).set(((r + 1) & 0x7f) | (r & 0x80));
             self.bus.addr.drive(self, self.rp(RegPair::IR).get());
-            self.bus.ctrl.drive(self, Ctrl::RFSH); // clears IORQ
             self.bus.m1.drive(self, false);
+            self.bus.iorq.drive(self, false);
+            self.bus.rfsh.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
-            self.bus.ctrl.drive(self, Ctrl::RFSH | Ctrl::MREQ);
+            self.bus.mreq.drive(self, true);
             yield_wait!(self.bus.clock.to_rising(1)); // T4 rising
             let busrq = self.bus.busrq.probe().unwrap_or(false);
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T4 falling
-            self.bus.ctrl.drive(self, Ctrl::RFSH); // clears MREQ
+            self.bus.mreq.drive(self, false);
             if busrq { yield_from!(self.process_busrq()); }
             return byte;
         }
@@ -991,10 +1006,11 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::OCF));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             self.bus.m1.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T1 falling
-            self.bus.ctrl.drive(self, Ctrl::MREQ | Ctrl::RD);
+            self.bus.mreq.drive(self, true);
+            self.bus.rd.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T2 falling
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
@@ -1003,15 +1019,17 @@ impl Cpu {
             let r = self.rg(Reg::R).get();
             self.rg(Reg::R).set(((r + 1) & 0x7f) | (r & 0x80));
             self.bus.addr.drive(self, self.rp(RegPair::IR).get());
-            self.bus.ctrl.drive(self, Ctrl::RFSH); // clears MREQ & RD
             self.bus.m1.drive(self, false);
+            self.bus.mreq.drive(self, false);
+            self.bus.rd.drive(self, false);
+            self.bus.rfsh.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
-            self.bus.ctrl.drive(self, Ctrl::RFSH | Ctrl::MREQ);
+            self.bus.mreq.drive(self, true);
             yield_wait!(self.bus.clock.to_rising(1)); // T4 rising
             let busrq = self.bus.busrq.probe().unwrap_or(false);
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T4 falling
-            self.bus.ctrl.drive(self, Ctrl::RFSH); // clears MREQ
+            self.bus.mreq.drive(self, false);
             if busrq { yield_from!(self.process_busrq()); }
             return byte;
         }
@@ -1023,9 +1041,10 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::MR));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             yield_wait!(self.bus.clock.to_falling(1)); // T1 falling
-            self.bus.ctrl.drive(self, Ctrl::MREQ | Ctrl::RD);
+            self.bus.mreq.drive(self, true);
+            self.bus.rd.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T2 falling
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
@@ -1033,7 +1052,7 @@ impl Cpu {
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
             let byte = self.bus.data.expect();
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             if busrq { yield_from!(self.process_busrq()); }
             return byte;
         }
@@ -1045,18 +1064,18 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::MW));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             yield_wait!(self.bus.clock.to_falling(1)); // T1 falling
             self.bus.data.drive(self, val);
-            self.bus.ctrl.drive(self, Ctrl::MREQ);
+            self.bus.mreq.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(1)); // T2 falling
-            self.bus.ctrl.drive(self, Ctrl::MREQ | Ctrl::WR);
+            self.bus.wr.drive(self, true);
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
             let busrq = self.bus.busrq.probe().unwrap_or(false);
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             if busrq { yield_from!(self.process_busrq()); }
         }
     }
@@ -1067,9 +1086,10 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::PR));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             yield_wait!(self.bus.clock.to_rising(1)); // T2 rising
-            self.bus.ctrl.drive(self, Ctrl::IORQ | Ctrl::RD);
+            self.bus.iorq.drive(self, true);
+            self.bus.rd.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(2)); // TW falling
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
@@ -1077,7 +1097,7 @@ impl Cpu {
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
             let byte = self.bus.data.expect();
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             if busrq { yield_from!(self.process_busrq()); }
             return byte;
         }
@@ -1089,18 +1109,19 @@ impl Cpu {
             yield_from!(self.mcycle_begin(MCycle::PW));
             self.bus.data.release(self);
             self.bus.addr.drive(self, addr);
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             yield_wait!(self.bus.clock.to_falling(1)); // T1 falling
             self.bus.data.drive(self, val);
             yield_wait!(self.bus.clock.to_rising(1)); // T2 rising
-            self.bus.ctrl.drive(self, Ctrl::IORQ | Ctrl::WR);
+            self.bus.iorq.drive(self, true);
+            self.bus.wr.drive(self, true);
             yield_wait!(self.bus.clock.to_falling(2)); // TW falling
             yield_from!(self.process_wait());
             yield_wait!(self.bus.clock.to_rising(1)); // T3 rising
             let busrq = self.bus.busrq.probe().unwrap_or(false);
             self.probe_interrupts();
             yield_wait!(self.bus.clock.to_falling(1)); // T3 falling
-            self.bus.ctrl.drive(self, Ctrl::NONE);
+            self.deassert_control_lines();
             if busrq { yield_from!(self.process_busrq()); }
         }
     }

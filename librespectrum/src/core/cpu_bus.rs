@@ -1,25 +1,21 @@
 use super::BusLine;
 
-bitflags! {
-    #[derive(Default)]
-    pub struct Ctrl : u8 {
-        const NONE = 0;
-        const MREQ = 1 << 0;
-        const IORQ = 1 << 1;
-        const RD   = 1 << 2;
-        const WR   = 1 << 3;
-        const RFSH = 1 << 4;
-    }
-}
-
 /// Z80 CPU bus
 pub struct CpuBus {
     /// Address bus (tri-state outputs)
     pub addr: BusLine<u16>,
     /// Data bus (tri-state in/outputs)
     pub data: BusLine<u8>,
-    /// Tri-state control outputs
-    pub ctrl: BusLine<Ctrl>,
+    /// MREQ output (tri-state)
+    pub mreq: BusLine<bool>,
+    /// IORQ output (tri-state)
+    pub iorq: BusLine<bool>,
+    /// RD output (tri-state)
+    pub rd: BusLine<bool>,
+    /// WR output (tri-state)
+    pub wr: BusLine<bool>,
+    /// RFSH output
+    pub rfsh: BusLine<bool>,
     /// M1 output
     pub m1: BusLine<bool>,
     /// BUSAK output
@@ -49,7 +45,11 @@ impl Default for CpuBus {
         Self {
             addr: BusLine::new("ADDR"),
             data: BusLine::new("DATA"),
-            ctrl: BusLine::new("CTRL"),
+            mreq: BusLine::new("MREQ"),
+            iorq: BusLine::new("IORQ"),
+            rd: BusLine::new("RD"),
+            wr: BusLine::new("WR"),
+            rfsh: BusLine::new("RFSH"),
             m1: BusLine::new("M1"),
             busak: BusLine::new("BUSAK"),
             halt: BusLine::new("HALT"),

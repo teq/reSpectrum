@@ -1,7 +1,7 @@
 use std::{cell::Cell, rc::Rc};
 
 use crate::{
-    core::{BusState, Ctrl, Identifiable, Identifier, NoReturnTask},
+    core::{BusState, Identifiable, Identifier, NoReturnTask},
     devs::{BreakpointManager, Device},
     yield_break_if, yield_wait
 };
@@ -68,10 +68,9 @@ impl Device for Static48k {
 
             loop {
 
-                let ctrl = self.bus.ctrl.probe().unwrap_or(Ctrl::NONE);
-                let mreq = ctrl.contains(Ctrl::MREQ);
-                let rd = ctrl.contains(Ctrl::RD);
-                let wr = ctrl.contains(Ctrl::WR);
+                let mreq = self.bus.mreq.probe().unwrap_or(false);
+                let rd = self.bus.rd.probe().unwrap_or(false);
+                let wr = self.bus.wr.probe().unwrap_or(false);
 
                 // Memory read: drive the bus while MREQ+RD are asserted.
                 if mreq && rd && !wr {
