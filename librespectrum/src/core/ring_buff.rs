@@ -51,6 +51,25 @@ impl<T: Copy, const N: usize> RingBuff<T, N> {
         }
     }
 
+    /// Mutable access to the newest item (the buffer's head), if any.
+    pub fn head_mut(&mut self) -> Option<&mut T> {
+        if self.len == 0 {
+            None
+        } else {
+            let idx = Self::prev(self.head_idx);
+            self.items[idx].as_mut()
+        }
+    }
+
+    /// Mutable access to the oldest item (the buffer's tail), if any.
+    pub fn tail_mut(&mut self) -> Option<&mut T> {
+        if self.len == 0 {
+            None
+        } else {
+            self.items[self.tail_idx].as_mut()
+        }
+    }
+
     /// Pushes an item to the head of the ring buffer, evicting the tail item once full
     pub fn push(&mut self, item: T) -> &mut Self {
         self.items[self.head_idx] = Some(item);
@@ -96,6 +115,7 @@ impl<T: Copy, const N: usize> RingBuff<T, N> {
         item
     }
 
+    /// Iterate from head to tail
     pub fn iter_to_tail<'a>(&'a self) -> RingBuffIterator<'a, T, N> {
         RingBuffIterator {
             items: &self.items,
@@ -105,6 +125,7 @@ impl<T: Copy, const N: usize> RingBuff<T, N> {
         }
     }
 
+    /// Iterate from tail to head
     pub fn iter_to_head<'a>(&'a self) -> RingBuffIterator<'a, T, N> {
         RingBuffIterator {
             items: &self.items,
@@ -149,44 +170,6 @@ mod tests {
         let mut buff = RingBuff::<u8, 3>::new();
         buff.push(1).push(2);
         assert_eq!(buff.len(), 2);
-    }
-
-    #[test]
-    fn allows_to_push_back_items() {
-        let mut buff = RingBuff::<u8, 3>::new();
-        buff.push(2).push(3);
-        assert_eq!(buff.push_back(1).len(), 3);
-        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![1, 2, 3]);
-    }
-
-    #[test]
-    fn allows_to_iterate_from_head_to_tail() {
-        let mut buff = RingBuff::<u8, 3>::new();
-        buff.push(1).push(2).push(3);
-        assert_eq!(buff.iter_to_tail().collect::<Vec<u8>>(), vec![3, 2, 1]);
-    }
-
-    #[test]
-    fn allows_to_iterate_from_tail_to_head() {
-        let mut buff = RingBuff::<u8, 3>::new();
-        buff.push(1).push(2).push(3);
-        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![1, 2, 3]);
-    }
-
-    #[test]
-    fn push_evicts_tail_when_full() {
-        let mut buff = RingBuff::<u8, 3>::new();
-        buff.push(1).push(2);
-        assert_eq!(buff.push(3).push(4).len(), 3);
-        assert_eq!(buff.iter_to_tail().collect::<Vec<u8>>(), vec![4, 3, 2]);
-    }
-
-    #[test]
-    fn push_back_evicts_head_when_full() {
-        let mut buff = RingBuff::<u8, 3>::new();
-        buff.push(1).push(2).push(3);
-        assert_eq!(buff.push_back(0).len(), 3);
-        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![0, 1, 2]);
     }
 
     #[test]
@@ -235,6 +218,57 @@ mod tests {
     }
 
     #[test]
+    fn head_mut_and_tail_mut_none_when_empty() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        assert_eq!(buff.head_mut(), None);
+        assert_eq!(buff.tail_mut(), None);
+    }
+
+    #[test]
+    fn head_mut_updates_newest_item_in_place() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2).push(3);
+
+        *buff.head_mut().unwrap() = 30;
+        assert_eq!(buff.head(), Some(30), "head item mutated in place");
+        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![1, 2, 30]);
+    }
+
+    #[test]
+    fn tail_mut_updates_oldest_item_in_place() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2).push(3);
+
+        *buff.tail_mut().unwrap() = 10;
+        assert_eq!(buff.tail(), Some(10), "tail item mutated in place");
+        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![10, 2, 3]);
+    }
+
+    #[test]
+    fn push_back_items() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(2).push(3);
+        assert_eq!(buff.push_back(1).len(), 3);
+        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn push_evicts_tail_when_full() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2);
+        assert_eq!(buff.push(3).push(4).len(), 3);
+        assert_eq!(buff.iter_to_tail().collect::<Vec<u8>>(), vec![4, 3, 2]);
+    }
+
+    #[test]
+    fn push_back_evicts_head_when_full() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2).push(3);
+        assert_eq!(buff.push_back(0).len(), 3);
+        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![0, 1, 2]);
+    }
+
+    #[test]
     fn pop_none_when_empty() {
         let mut buff = RingBuff::<u8, 3>::new();
         assert_eq!(buff.pop(), None);
@@ -263,6 +297,20 @@ mod tests {
         assert_eq!(buff.pop_back(), Some(2));
         assert_eq!(buff.pop_back(), Some(3));
         assert_eq!(buff.pop_back(), None);
+    }
+
+    #[test]
+    fn iterate_from_head_to_tail() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2).push(3);
+        assert_eq!(buff.iter_to_tail().collect::<Vec<u8>>(), vec![3, 2, 1]);
+    }
+
+    #[test]
+    fn iterate_from_tail_to_head() {
+        let mut buff = RingBuff::<u8, 3>::new();
+        buff.push(1).push(2).push(3);
+        assert_eq!(buff.iter_to_head().collect::<Vec<u8>>(), vec![1, 2, 3]);
     }
 
 }
