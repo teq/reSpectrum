@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use super::{BusHistory, BusReading, BusSignalObserver, Clock, CpuBus};
+use super::{BusHistory, BusSignalObserver, Clock, CpuBus};
 
 /// Combined device interface: the CPU bus and the system clock.
 /// Devices communicate over the bus and synchronize against the clock, so both
@@ -31,10 +31,6 @@ impl BusState {
         Rc::clone(&self.history.borrow())
     }
 
-    /// Latest snapshot of the bus
-    pub fn snapshot(&self) -> BusReading {
-        self.history().current()
-    }
 }
 
 impl Deref for BusState {

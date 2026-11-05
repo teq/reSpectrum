@@ -56,8 +56,7 @@ impl<T: Copy, const N: usize> RingBuff<T, N> {
         if self.len == 0 {
             None
         } else {
-            let idx = Self::prev(self.head_idx);
-            self.items[idx].as_mut()
+            self.items[Self::prev(self.head_idx)].as_mut()
         }
     }
 

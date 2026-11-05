@@ -72,13 +72,36 @@ pub struct BusReading {
     pub busrq: Option<(Identifier, bool)>,
 }
 
+impl BusReading {
+    /// Apply a single signal change to this snapshot.
+    fn apply(&mut self, change: BusChange) {
+        match change.signal {
+            BusSignal::ADDR => self.addr = change.state.map(|(id, v)| (id, v.as_word())),
+            BusSignal::DATA => self.data = change.state.map(|(id, v)| (id, v.as_byte())),
+            BusSignal::MREQ => self.mreq = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::IORQ => self.iorq = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::RD => self.rd = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::WR => self.wr = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::RFSH => self.rfsh = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::M1 => self.m1 = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::BUSAK => self.busak = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::HALT => self.halt = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::WAIT => self.wait = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::INT => self.int = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::NMI => self.nmi = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::RESET => self.reset = change.state.map(|(id, v)| (id, v.as_bit())),
+            BusSignal::BUSRQ => self.busrq = change.state.map(|(id, v)| (id, v.as_bit())),
+        }
+    }
+}
+
 /// Collects bus changes into a history of [`BusReading`] snapshots.
 ///
-/// Each change updates the tracked `current` snapshot and appends it to the
-/// ring buffer, so only actual change points are recorded.
+/// Each change is applied to the newest snapshot.
+/// A new snapshot is started only when the clock
+/// advances, carrying forward previously driven values.
 pub struct BusHistory<const N: usize> {
     clock: Rc<Clock>,
-    current: RefCell<BusReading>,
     readings: RefCell<RingBuff<BusReading, N>>,
 }
 
@@ -86,52 +109,31 @@ impl<const N: usize> BusHistory<N> {
     pub fn new(clock: &Rc<Clock>) -> Rc<Self> {
         Rc::new(Self {
             clock: Rc::clone(clock),
-            current: RefCell::new(BusReading::default()),
             readings: RefCell::new(RingBuff::new()),
         })
     }
 
-    /// Current (latest) snapshot of the bus.
-    pub fn current(&self) -> BusReading {
-        *self.current.borrow()
-    }
-
-    /// All recorded snapshots, oldest first, including the current (latest) snapshot.
+    /// All recorded snapshots, oldest first. The head is the latest state.
     pub fn readings(&self) -> Vec<BusReading> {
-        let mut all: Vec<BusReading> = self.readings.borrow().iter_to_head().collect();
-        all.push(*self.current.borrow());
-        all
+        self.readings.borrow().iter_to_head().collect()
     }
 }
 
 impl<const N: usize> BusSignalObserver for BusHistory<N> {
     fn on_change(&self, change: BusChange) {
         let htcycles = self.clock.get();
-        let mut current = self.current.borrow_mut();
+        let mut readings = self.readings.borrow_mut();
 
-        if current.htcycles != htcycles {
-            // Timestamp advanced: commit the previous snapshot and start a new one
-            self.readings.borrow_mut().push(*current);
-            current.htcycles = htcycles;
+        let head = readings.head();
+        if head.map_or(true, |h| h.htcycles != htcycles) {
+            // Clock advanced (or the buffer is empty): start a new snapshot,
+            // carrying forward the previously driven values.
+            let mut snapshot = head.unwrap_or_default();
+            snapshot.htcycles = htcycles;
+            readings.push(snapshot);
         }
 
-        match change.signal {
-            BusSignal::ADDR => current.addr = change.state.map(|(id, v)| (id, v.as_word())),
-            BusSignal::DATA => current.data = change.state.map(|(id, v)| (id, v.as_byte())),
-            BusSignal::MREQ => current.mreq = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::IORQ => current.iorq = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::RD => current.rd = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::WR => current.wr = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::RFSH => current.rfsh = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::M1 => current.m1 = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::BUSAK => current.busak = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::HALT => current.halt = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::WAIT => current.wait = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::INT => current.int = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::NMI => current.nmi = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::RESET => current.reset = change.state.map(|(id, v)| (id, v.as_bit())),
-            BusSignal::BUSRQ => current.busrq = change.state.map(|(id, v)| (id, v.as_bit())),
-        }
+        readings.head_mut().unwrap().apply(change);
     }
 }
 
@@ -162,11 +164,11 @@ mod tests {
         // The clock never advanced, so no snapshot was committed to the buffer.
         assert_eq!(history.readings().len(), 1, "single accumulated reading expected");
 
-        let reading = history.current();
-        assert_eq!(reading.htcycles, clock.get());
-        assert_eq!(reading.addr, Some((1, 0x5678)), "later addr change must override the earlier one");
-        assert_eq!(reading.rd,   Some((1, true)), "rd change must be recorded");
-        assert_eq!(reading.data, Some((2, 0xAB)), "data change must be recorded");
+        let readings = history.readings();
+        assert_eq!(readings[0].htcycles, clock.get());
+        assert_eq!(readings[0].addr, Some((1, 0x5678)), "later addr change must override the earlier one");
+        assert_eq!(readings[0].rd,   Some((1, true)), "rd change must be recorded");
+        assert_eq!(readings[0].data, Some((2, 0xAB)), "data change must be recorded");
     }
 
     #[test]
