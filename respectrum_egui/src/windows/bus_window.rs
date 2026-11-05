@@ -1,5 +1,5 @@
 use egui::*;
-use librespectrum::{devs::{BusLogger, DeviceManager}};
+use librespectrum::core::BusState;
 use std::rc::Rc;
 
 use crate::{
@@ -14,14 +14,16 @@ const LANE_PADDING: f32 = 4.0;
 
 fn draw_digital_lane(
     painter: &Painter,
-    wave_rect: Rect,
     lane_top: f32,
+    xs: &[f32],
     values: &[Option<bool>],
     color: Color32,
 ) {
     if values.len() < 2 {
         return;
     }
+
+    debug_assert_eq!(xs.len(), values.len());
 
     let signal_stroke = Stroke::new(1.6_f32, color);
     let no_signal_stroke = Stroke::new(1.0_f32, theme::BUS_NO_SIGNAL);
@@ -30,12 +32,10 @@ fn draw_digital_lane(
     let y_low = lane_top + LANE_H - LANE_PADDING;
     let y_mid = lane_top + LANE_H * 0.5;
 
-    let step_x = wave_rect.width() / (values.len() - 1) as f32;
-
     for (idx, pair) in values.windows(2).enumerate() {
         let (prev, curr) = (pair[0], pair[1]);
-        let x_prev = wave_rect.left() + idx as f32 * step_x;
-        let x_curr = wave_rect.left() + (idx + 1) as f32 * step_x;
+        let x_prev = xs[idx];
+        let x_curr = xs[idx + 1];
 
         match (prev, curr) {
             (Some(p), Some(c)) => { // Known state (0 or 1) or transition between them
@@ -65,8 +65,8 @@ fn draw_digital_lane(
 
 fn draw_bus_lane<T>(
     painter: &Painter,
-    wave_rect: Rect,
     lane_top: f32,
+    xs: &[f32],
     values: &[Option<T>],
     color: Color32,
 ) where
@@ -75,6 +75,8 @@ fn draw_bus_lane<T>(
     if values.len() < 2 {
         return;
     }
+
+    debug_assert_eq!(xs.len(), values.len());
 
     let hex_digits = std::mem::size_of::<T>() * 2;
 
@@ -85,12 +87,10 @@ fn draw_bus_lane<T>(
     let y_low = lane_top + LANE_H - LANE_PADDING;
     let y_mid = lane_top + LANE_H * 0.5;
 
-    let step_x = wave_rect.width() / (values.len() - 1) as f32;
-
     for (idx, pair) in values.windows(2).enumerate() {
         let (prev, curr) = (pair[0], pair[1]);
-        let x_prev = wave_rect.left() + idx as f32 * step_x;
-        let x_curr = wave_rect.left() + (idx + 1) as f32 * step_x;
+        let x_prev = xs[idx];
+        let x_curr = xs[idx + 1];
 
         match (prev, curr) {
             (prev, Some(c)) if prev != Some(c) => { // Transition from unknown to known or to a different known state
@@ -127,14 +127,13 @@ fn draw_bus_lane<T>(
 }
 
 pub struct BusWindow {
-    logger: Rc<BusLogger>,
+    bus_state: Rc<BusState>,
 }
 
 impl BusWindow {
-    pub fn new(logger: &Rc<BusLogger>, device_manager: &Rc<DeviceManager>) -> Self {
-        let _ = device_manager;
+    pub fn new(bus_state: &Rc<BusState>) -> Self {
         Self {
-            logger: Rc::clone(logger),
+            bus_state: Rc::clone(bus_state),
         }
     }
 }
@@ -147,7 +146,7 @@ impl SubWindow for BusWindow {
 
         draw_window(&self.name(), ui, open, |ui, _| {
 
-            let readings: Vec<_> = self.logger.readings.borrow().iter_to_head().collect();
+            let readings = self.bus_state.history().readings();
 
             let (rect, _) = {
                 let total_h = (LANES.len() + 2) as f32 * (LANE_H + LANE_MARGIN) + 28.0;
@@ -158,6 +157,18 @@ impl SubWindow for BusWindow {
                 pos2(rect.left() + LANE_LABEL_W, rect.top() + 8.0),
                 pos2(rect.right() - 8.0, rect.bottom() - 18.0),
             );
+
+            // Time-proportional x axis: map each sample's htcycles to x position.
+            let xs: Vec<f32> = match (readings.first(), readings.last()) {
+                (Some(first), Some(last)) if last.htcycles > first.htcycles => {
+                    let scale = wave_rect.width() / (last.htcycles - first.htcycles) as f32;
+                    readings
+                        .iter()
+                        .map(|r| wave_rect.left() + (r.htcycles - first.htcycles) as f32 * scale)
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
 
             let addr_values: Vec<Option<u16>> = readings.iter().map(|r| r.addr.map(|(_, v)| v)).collect();
             let data_values: Vec<Option<u8>> = readings.iter().map(|r| r.data.map(|(_, v)| v)).collect();
@@ -178,8 +189,8 @@ impl SubWindow for BusWindow {
             );
             draw_bus_lane(
                 &painter,
-                wave_rect,
                 y,
+                &xs,
                 &addr_values,
                 theme::BUS_ADDRESS,
             );
@@ -194,8 +205,8 @@ impl SubWindow for BusWindow {
             );
             draw_bus_lane(
                 &painter,
-                wave_rect,
                 y,
+                &xs,
                 &data_values,
                 theme::BUS_DATA,
             );
@@ -227,7 +238,7 @@ impl SubWindow for BusWindow {
                     _ => Vec::new(),
                 };
 
-                draw_digital_lane(&painter, wave_rect, y, &values, color);
+                draw_digital_lane(&painter, y, &xs, &values, color);
                 y += LANE_H + LANE_MARGIN;
             }
 

@@ -2,7 +2,7 @@ use std::{cell::{Cell, RefCell}, collections::HashMap, rc::Rc};
 
 use crate::{
     core::{BusState, Identifiable, Identifier, NoReturnTask},
-    devs::{BreakpointManager, BusLogger, Cpu, mem::Static48k},
+    devs::{BreakpointManager, Cpu, mem::Static48k},
 };
 
 pub trait Device: Identifiable {
@@ -57,12 +57,5 @@ impl DeviceManager {
         let memory = Rc::new(Static48k::new(self.generate_id(), &self.bus, &self.breakpoints));
         self.register_name(memory.id(), "Static 48K Memory");
         memory
-    }
-
-    /// Create a new bus logger instance
-    pub fn create_bus_logger(&self) -> Rc<BusLogger> {
-        let logger = Rc::new(BusLogger::new(self.generate_id(), &self.bus));
-        self.register_name(logger.id(), "Bus Logger");
-        logger
     }
 }

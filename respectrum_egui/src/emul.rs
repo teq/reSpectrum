@@ -77,10 +77,8 @@ fn main() -> eframe::Result {
         mem.load(0, &buffer);
         mem
     };
-    let logger = device_manager.create_bus_logger();
-
     let scheduler =  Rc::new(RefCell::new(
-        Scheduler::new(&clock, vec![cpu.run(), mem.run(), logger.run()])
+        Scheduler::new(&clock, vec![cpu.run(), mem.run()])
     ));
 
     let app = Box::new(EmulApp {
@@ -88,7 +86,7 @@ fn main() -> eframe::Result {
             (true, Box::new(CpuWindow::new(&cpu))),
             (true, Box::new(DisassmWindow::new(&scheduler, &cpu, &mem, &breakpoints))),
             (true, Box::new(MemoryWindow::new(&mem))),
-            (true, Box::new(BusWindow::new(&logger, &device_manager))),
+            (true, Box::new(BusWindow::new(&bus_state))),
             (true, Box::new(DisplayWindow::new(&mem))),
         ]
     });
